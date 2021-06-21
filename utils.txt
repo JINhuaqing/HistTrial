@@ -1,0 +1,226 @@
+## Some utils functions to implement the simulation of 
+## Step 2 -4 under a very simple linear model
+## Y_i = b I(Z_i) + betas X_i + eps
+#rm(list=ls())
+library(mvtnorm)
+library(arrApply)
+
+
+gen.Data <- function(n, b, betas, X.tps, phi0=1){
+  # args
+  #   n: Sample size for both groups
+  #   b: slope of treatment variable
+  #   betas: intercept and slopes of X 
+  #   X.tps: A vector to contain the variable types of beta
+  #           "c": continous variable
+  #           number: number of level for discrete variable
+  #   phi0: sd of the eps term
+  Zs <- rbinom(n, 1, 0.5)
+  Xs.list <- list()
+  
+  p <- length(X.tps)
+  i <- 1
+  for (X.tp in X.tps){
+    if (substr(tolower(X.tp), 1, 1) == "c"){
+        cX <- rnorm(n)
+    }else {
+        nlvl <- as.numeric(X.tp)
+        cX <- sample(nlvl, size=n, replace=TRUE) - 1
+        # cX <- as.factor(cX)
+    }
+    Xs.list[[i]] <- cX
+    i <- i + 1
+  }
+  Xs <- do.call(cbind, Xs.list)
+  Ons <- rep(1, n)
+  
+  fullX <- cbind(Zs, Ons, Xs)
+  fullBs <- c(b, betas)
+  
+  Mus <- fullX %*% fullBs
+  Ys <- Mus + rnorm(n, sd=phi0)
+  
+  outData <- cbind(Ys, Zs, Xs)
+  cNames <- paste0("X", 1:p)
+  colnames(outData) <- c("Y", "Z", cNames)
+  names(fullBs) <- c("Z", "intercept", cNames)
+  
+  list(data=as.data.frame(outData), paras=fullBs)
+}
+
+
+# Calculate the value of the kernel functions
+MKF <- function(x, Xs, H){
+  # args:
+  #   x: current x, p x 1
+  #   Xs: data matrix, n x p
+  #   H: cov mat, p x p
+  n <- dim(Xs)[1]
+  xmat <- matrix(rep(x, n), nrow=n, byrow=TRUE)
+  difX <- xmat - Xs
+  vs <- dmvnorm(difX, sigma=H)
+  vs
+}
+
+
+# kernel function to evaluate multiple points at one time
+mMKF <- function(cxs, Xs, H){
+  # args:
+  #   cxs: current x, m x p 
+  #   Xs: data matrix, n x p
+  #   H: cov mat, p x p
+  #return:
+  #   vs: n x m matrix 
+  if (is.null(dim(cxs))){
+    vs <- MKF(cxs, Xs, H)
+  }else{
+    m <- dim(cxs)[1]
+    p <- dim(Xs)[2]
+    n <- dim(Xs)[1]
+    cxArr <- array(rep(cxs, n), dim = c(m, p, n))
+    XsArr <- replicate(m, Xs, simplify = "array")
+    XsArr <- aperm(XsArr, c(3, 2, 1))
+    difXArr <- cxArr - XsArr
+    dim(difXArr)
+    difXArr <- aperm(difXArr, c(3, 1, 2))
+    difXmat <- matrix(difXArr, ncol=4)
+    vs.vec <- dmvnorm(difXmat, sigma=H)
+    vs <- matrix(vs.vec, ncol=m)
+  }
+  
+  return(vs)
+}
+
+# soft threholding 
+softH <- function(xs, lam){
+    rvs <- xs
+    rvs[abs(xs) <= lam] = 0
+    pXs <- rvs[abs(xs) > lam]
+    rvs[abs(xs) > lam] =  sign(pXs) * (abs(pXs)-lam)
+    return(rvs)
+}
+
+# univariate kernel fn with K(0) = 1
+normKfn <- function(x, h=1){
+  #args:
+  # x: n x 1 or n x p
+  # h: bw, of size p
+  
+
+  if (is.null(dim(x))){
+    p <- 1
+  }else{
+    p <- dim(x)[2]
+  }
+  
+  x <- matrix(x, ncol=p)
+  
+  if (length(h) == 1) {
+    h <- rep(h, p)
+  }
+  
+  c <- dnorm(0)
+  hc <- h*c
+  ys <- lapply(1:p, function(i)dnorm(x[, i]/hc[i])/hc[i])
+  y <- do.call(cbind, ys)
+  y
+}
+
+# calculate the allo prob given the imbalance measure
+allo.probs.fn <- function(gs){
+  invs <- 1/gs - 1
+  probs <- invs/sum(invs)
+  probs
+  
+}
+
+
+# Reweighted biased coin design
+RBC.design <- function(xNew, res){
+  #args:
+  # xNew: new data point, p x 1
+  # res: the output from Step 3
+  #Return:
+  # ns: num of subs in each grp
+  # probs: assign probs
+  # grp: assigned group
+  
+  p <- length(xNew)
+  n <- dim(res$data)[1]
+  Xs <- as.matrix(res$data[, 3:(p+2)])
+  hs <- apply(Xs, 2, bw.nrd0) 
+  
+  xNewMat <- matrix(rep(xNew, n), nrow=n, byrow=TRUE)
+  diff <- Xs - xNewMat
+  wss <- normKfn(diff, hs)
+  ws <- arrApply(wss, 2, "prod")
+  
+  # create res obj for taus = 0
+  res0 <- res
+  res0$tau2s <- rep(0, n)
+  varRef <- post.var.mu0.fn(xNew, res0)
+  varPost <- post.var.mu0.fn(xNew, res)
+  R <- varRef/varPost
+  
+  n0 <- R* sum((1-res$data$Z)*ws)
+  n1 <- sum((res$data$Z)*ws)
+  
+  ns <- c(n0, n1)
+  gs <- ns/sum(ns)
+  probs <- allo.probs.fn(gs)
+  grp <- sample.int(2, size=1, prob=probs)
+  rv <- list(grp=grp, probs=probs, ns=ns)
+  rv
+}
+
+# Reweighted Pocock-Simon design
+RPS.design <- function(xNew, res){
+  #args:
+  # xNew: new data point, p x 1
+  # res: the output from Step 3
+  #Return:
+  # probs: assign probs
+  # grp: assigned group
+  
+  p <- length(xNew)
+  n <- dim(res$data)[1]
+  Xs <- as.matrix(res$data[, 3:(p+2)])
+  hs <- apply(Xs, 2, bw.nrd0) 
+  xNewMat <- matrix(rep(xNew, n+1), nrow=n+1, byrow=TRUE)
+  Xs.ext <- rbind(Xs, xNew)
+  diff <- Xs.ext - xNewMat
+  wss <- normKfn(diff, hs)
+  
+  # create res obj for taus = 0
+  res0 <- res
+  res0$tau2s <- rep(0, n)
+  varRef <- post.var.mu0.fn(xNew, res0)
+  varPost <- post.var.mu0.fn(xNew, res)
+  R <- varRef/varPost
+  
+  Z <- res$data$Z
+  # when grp=1 for n+1 subjects
+  Z1 <- c(Z, 1)
+  Z1Mat <- matrix(rep(Z1, p), ncol=p, byrow=FALSE)
+  n11s <- colSums(Z1Mat * wss)
+  n10s <- R*colSums((1-Z1Mat) * wss)
+  gn1 <- sum((n11s-n10s)**2)
+  
+  # when grp=0 for n+1 subjects
+  Z0 <- c(Z, 0)
+  Z0Mat <- matrix(rep(Z0, p), ncol=p, byrow=FALSE)
+  n01s <- colSums(Z0Mat * wss)
+  n00s <- R*colSums((1-Z0Mat) * wss)
+  gn0 <- sum((n01s-n00s)**2)
+  
+  gs.raw <- c(gn0, gn1)
+  gs <- gs.raw/sum(gs.raw)
+  
+  probs <- allo.probs.fn(gs)
+  grp <- sample.int(2, size=1, prob=probs)
+  rv <- list(grp=grp, probs=probs, gs=gs.raw)
+  rv
+}
+
+RPS.design(xNew, res)
+RBC.design(xNew, res)
