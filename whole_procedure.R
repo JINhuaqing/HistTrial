@@ -61,7 +61,7 @@ for (j in (n0+1):N){
     var.ref <- post.var.mu0.fn(cx, res0)
     R <- var.ref/var.info
     ass.res <- RPS.design(cx, data[, 3:6], data$Z, hs, R)
-    ass.res.no <- RBC.design(cx, data[, 3:6], data$Z, hs, R=1)
+    ass.res.no <- RPS.design(cx, data[, 3:6], data.no$Z, hs, R=1)
     # ass.res <- RBC.design(cx, data[, 3:6], data$Z, hs, R)
     
     Xs <- rbind(Xs, cx)
@@ -88,8 +88,6 @@ for (j in (n0+1):N){
         alpMat <- sub.Paras.fn(Xs, alpss)
         Theta0s <- curMean.fn(Xs, Zs, alpMat, b=0)
         res <- info.est.fn(Theta0s, data, H, lam)
-        
-        Theta0s.no <- curMean.fn(Xs, Zs.no, alpMat, b=0)
         res.no <- info.est.fn(Theta0s, data.no, H, lam, is.borrow=FALSE)
     }
 }

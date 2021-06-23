@@ -25,12 +25,12 @@ N <- 200 # total sample size
 lam <- 0.1
 hs <- rep(2.1, 4)
 
+x.tps <- c(2, 2, "c", "c")
 tXs <- gen.Data.Xs(1000, x.tps)
 H <- diag(c(bw.nrd(tXs[, 1]), bw.nrd(tXs[, 2]), bw.nrd(tXs[, 3]), bw.nrd(tXs[, 4])))
 
 # initial dataset
 n0 <- 10
-x.tps <- c(2, 2, "c", "c")
 
 nSimu <- 100
 trt.effs <- list()
