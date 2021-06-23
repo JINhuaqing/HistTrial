@@ -20,7 +20,7 @@ alpss <-  list(para1=c(2, 1, -1, 3, -2),
              para4=c(2, 0, -1, 4, -2) )
 b <- 2
 phi0 = phi1 = 1
-N <- 200 # total sample size
+N <- 100 # total sample size
 # parameters
 lam <- 0.1
 hs <- rep(2.1, 4)
@@ -28,9 +28,10 @@ hs <- rep(2.1, 4)
 x.tps <- c(2, 2, "c", "c")
 tXs <- gen.Data.Xs(1000, x.tps)
 H <- diag(c(bw.nrd(tXs[, 1]), bw.nrd(tXs[, 2]), bw.nrd(tXs[, 3]), bw.nrd(tXs[, 4])))
+H <- diag(c(0.1, 0.1, 0.3, 0.3))
 
 # initial dataset
-n0 <- 10
+n0 <- 20
 
 nSimu <- 100
 trt.effs <- list()

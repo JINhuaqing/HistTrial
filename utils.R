@@ -404,7 +404,7 @@ mOptTau <- function(cxs, data, Mu0s, lam, Theta0s, H){
         
         
         num <- colSums(sZsMat * mks)
-        den <- colSums(sZsMat * mks * sseMat)
+        den <- colSums(sZsMat * mks * sseMat) 
         tau2.td <- num/den
         
         tau2 <- softH(tau2.td, lam)
@@ -423,13 +423,9 @@ optPhi <- function(data, Mus){
     b <-  0.01
     sZs <- 1 - data$Z
 
-    rootf <- function(x){
-        fix.term <- x**3 + (a+1)*x**2 - b*x
-        rv <- sum(sZs * (fix.term - (data$Y-Mus)**2))
-        rv
-    }
-
-    res <- uniroot(rootf, c(-100, 100))
+    num <- sum(sZs * (data$Y - Mus)**2)/2 + b
+    den <- 1 + a + sum(sZs)/2
+    res <- sqrt(num/den)
     res
 }
 
@@ -510,8 +506,7 @@ info.est.fn <- function(Theta0s, data, H, lam, is.borrow=TRUE, maxit=100){
         }
         Tau2s.tk[[i]] <- Tau2s
         
-        res <- optPhi(data, Mu0s)
-        phi0 <- res$root
+        phi0 <- optPhi(data, Mu0s)
         phi0.tk <- c(phi0.tk, phi0)
         
         if (i > 1){
@@ -551,8 +546,7 @@ mu1.est.fn <- function(Theta1s, data, H, invsigma2=0, maxit=100){
         Mu1s <- mOptMu1(as.matrix(Xs), data, invsigma2, phi1, Theta1s, H)
         Mu1s.tk[[i]] <- Mu1s
         
-        res <- optPhi(data, Mu1s)
-        phi1 <- res$root
+        phi1 <- optPhi(data, Mu1s)
         phi1.tk <- c(phi1.tk, phi1)
         
         if (i > 1){
