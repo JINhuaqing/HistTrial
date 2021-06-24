@@ -448,7 +448,6 @@ tau2.efn <- function(xs, res){
 }
 
 # calculate the posterior variance of the mu0(X)
-# 
 post.var.mu0.fn <- function(cxs, res){
   #args
   # cxs, data points, m x p
@@ -477,6 +476,43 @@ post.var.mu0.fn <- function(cxs, res){
   }
   
   return(1/rv)
+}
+
+# calculate the posterior mean of the mu0(X)
+post.mean.mu0.fn <- function(cxs, res){
+  #args
+  # cxs, data points, m x p
+  
+  if (is.null(dim(cxs))){
+      xs <- rbind(cxs, cxs)
+  }else{
+      xs <- cxs
+  }
+      
+  m <- dim(xs)[1]
+  p <- dim(xs)[2]
+  Xs <- as.matrix(res$data[, 3:(p+2)])
+  tau2Mat <- matrix(rep(res$tau2s, m), ncol=m)
+  sZs <- 1 - res$data$Z
+  sZsMat <- matrix(rep(sZs, m), ncol=m)
+  Y <- res$data$Y
+  YMat <- matrix(rep(Y, m), ncol=m)
+  theta0Mat <- matrix(rep(res$theta0s, m), ncol=m)
+  
+  mks <- mMKF(xs, Xs, res$H)
+  ws.sum <- colSums(mks)
+  ws.sum.mat <- matrix(rep(ws.sum, dim(Xs)[1]), ncol=m, byrow=TRUE)
+  norm.mks <- mks/ws.sum.mat
+  den <- colSums(sZsMat*norm.mks*(1/res$phi0/res$phi0+tau2Mat))
+  
+  num <- colSums(sZsMat*norm.mks*(YMat/res$phi0/res$phi0+tau2Mat*theta0Mat))
+  rv <- num/den
+  
+  if (is.null(dim(cxs))){
+      rv <- rv[1]
+  }
+  
+  return(rv)
 }
 
 # function for estimate mu0s, tau2s, and phi0
@@ -580,14 +616,14 @@ post.var.mu1.fn <- function(cxs, res){
   m <- dim(xs)[1]
   p <- dim(xs)[2]
   Xs <- as.matrix(res$data[, 3:(p+2)])
-  sZs <- 1 - res$data$Z
-  sZsMat <- matrix(rep(sZs, m), ncol=m)
+  Zs <- res$data$Z
+  ZsMat <- matrix(rep(Zs, m), ncol=m)
   
   mks <- mMKF(xs, Xs, res$H)
   ws.sum <- colSums(mks)
   ws.sum.mat <- matrix(rep(ws.sum, dim(Xs)[1]), ncol=m, byrow=TRUE)
   norm.mks <- mks/ws.sum.mat
-  rv <- colSums(sZsMat*norm.mks*(1/res$phi1/res$phi1+res$invsigma2))
+  rv <- colSums(ZsMat*norm.mks*(1/res$phi1/res$phi1+res$invsigma2))
   
   if (is.null(dim(cxs))){
       rv <- rv[1]
@@ -595,3 +631,57 @@ post.var.mu1.fn <- function(cxs, res){
   
   return(1/rv)
 }
+
+# calculate the posterior mean of the mu1(X)
+post.mean.mu1.fn <- function(cxs, res){
+  #args
+  # cxs, data points, m x p
+  
+  if (is.null(dim(cxs))){
+      xs <- rbind(cxs, cxs)
+  }else{
+      xs <- cxs
+  }
+      
+  m <- dim(xs)[1]
+  p <- dim(xs)[2]
+  Xs <- as.matrix(res$data[, 3:(p+2)])
+  Zs <-  res$data$Z
+  ZsMat <- matrix(rep(Zs, m), ncol=m)
+  Ys <- res$data$Y
+  YsMat <- matrix(rep(Ys, m), ncol=m)
+  theta1Mat <- matrix(rep(res$theta1s, m), ncol=m)
+  
+  mks <- mMKF(xs, Xs, res$H)
+  ws.sum <- colSums(mks)
+  ws.sum.mat <- matrix(rep(ws.sum, dim(Xs)[1]), ncol=m, byrow=TRUE)
+  norm.mks <- mks/ws.sum.mat
+  den <- colSums(ZsMat*norm.mks*(1/res$phi1/res$phi1+res$invsigma2))
+  num <- colSums(ZsMat*norm.mks*(YsMat/res$phi1/res$phi1+theta1Mat*res$invsigma2))
+  rv <- num/den
+  
+  if (is.null(dim(cxs))){
+      rv <- rv[1]
+  }
+  
+  return(rv)
+}
+
+# sampling from posterior distribution of mu0
+r.postMu0 <- function(cxs, res){
+  ms <- post.mean.mu0.fn(cxs, res)
+  vs <- post.var.mu0.fn(cxs, res)
+  nSps <- length(ms)
+  sps <- rnorm(nSps, ms, sqrt(vs))
+  sps
+}
+
+# sampling from posterior distribution of mu1
+r.postMu1 <- function(cxs, res){
+  ms <- post.mean.mu1.fn(cxs, res)
+  vs <- post.var.mu1.fn(cxs, res)
+  nSps <- length(ms)
+  sps <- rnorm(nSps, ms, sqrt(vs))
+  sps
+}
+

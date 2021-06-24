@@ -16,14 +16,6 @@ CI.fn <- function(errs){
   rvs
 }
 
-n0 <- 10
-x.tps <- c(2, 2, "c", "c")
-Xs <- gen.Data.Xs(n0, x.tps)
-idx0 <- sample.int(n0, size=floor(n0/2))
-Zs <- rep(1, n0)
-Zs[idx0] <- 0
-
-
 
 
 
@@ -40,8 +32,8 @@ betass <- list(para1=c(2, 1, -1, 3, -2),
                   )
 
 alpss <-  list(para1=c(2, 1, -1, 3, -2), 
-             para3=c(0, -1, -1, 3, 2), # switch para2 and para3
-             para2=c(3, 1, 2, 4, 2), 
+             para2=c(0, -1, -1, 3, 2), 
+             para3=c(3, 1, 2, 4, 2), 
              para4=c(2, 0, -1, 4, -2) )
 
 # Simulation 
@@ -99,8 +91,8 @@ boxplot(tau2s~idxs, data=post.m.data, xlab="Subgroups", ylab="Tau2s")
 
 # Trt effs
 {
-nSimu <- 1000
-n <- 50
+nSimu <- 100
+n <- 100
 lam <- 0.10
 trt.effbs <- list()
 for (i in 1:nSimu){
@@ -108,26 +100,19 @@ for (i in 1:nSimu){
   # train data
   Xs.t <- gen.Data.Xs(n, x.tps)
   betMat <- sub.Paras.fn(Xs.t, betass)
-  Zs <- rep(0, n)
+  Zs <- c(rep(0, n/2), rep(1, n/2))
   Ys <- curMean.fn(Xs.t, Zs, betMat, b) + rnorm(n, sd=phi0)
   data <- cbind(Ys, Zs, Xs.t)
   data <- as.data.frame(data)
   names(data)[1:2] <- c("Y", "Z")
   
-  Zs1 <- rep(1, n)
-  Ys1 <- curMean.fn(Xs.t, Zs1, betMat, b) + rnorm(n, sd=phi0)
-  data1 <- cbind(Ys1, Zs1, Xs.t)
-  data1 <- as.data.frame(data1)
-  names(data1)[1:2] <- c("Y", "Z")
-  
-  H <- diag(c(bw.nrd(data$X1), bw.nrd(data$X2), bw.nrd(data$X3), bw.nrd(data$X4)))
   H <- diag(c(0.1, 0.1, 0.3, 0.3))
   
   alpMat <- sub.Paras.fn(Xs.t, alpss)
   Theta0s <- curMean.fn(Xs.t, Zs, alpMat, b=0)
   res0 <- info.est.fn(Theta0s, data, H, lam)
   res0.no <- info.est.fn(Theta0s, data, H, lam, is.borrow = F)
-  res1 <- mu1.est.fn(Theta0s, data1, H)
+  res1 <- mu1.est.fn(Theta0s, data, H)
   
   effs0 <- mu0.efn(as.matrix(Xs.t), res0)
   effs0.no <- mu0.efn(as.matrix(Xs.t), res0.no)
