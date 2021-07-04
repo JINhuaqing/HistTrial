@@ -6,8 +6,6 @@
 # mvtnorm: for mvnorm kernel function
 library(mvtnorm)
 library(arrApply)
-library(rootSolve)
-library(mvtnorm)
 library(kedd)
 
 
