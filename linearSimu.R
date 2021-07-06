@@ -1,8 +1,8 @@
 #rm(list=ls())
 library(magrittr)
 library(dplyr)
-#setwd("/home/huaqingj/MyResearch/HistTrial")
-setwd("/home/r6user2/Documents/TQ/HistTrial")
+setwd("/home/huaqingj/MyResearch/HistTrial")
+#setwd("/home/r6user2/Documents/TQ/HistTrial")
 #setwd("C:/Users/JINHU/Documents/ProjectCode/HistTrial")
 source("utils.R")
 library(parallel)
@@ -19,6 +19,10 @@ CI.fn <- function(errs){
 }
 
 fun.test <- function(i){
+    alpss <- betass
+    for (jj in 1:4){
+        alpss[[jj]] <- betass[[jj]] + rnorm(1, sd=xis[jj])
+    }
     print(i)
     Xs <- gen.Data.Xs(n0, x.tps)
     idx0 <- sample.int(n0, size=floor(n0/2))
@@ -112,12 +116,17 @@ betass <- list(
               para4=c(2, 0, -1, 4, -2)
                   )
 
+
 # parameters for historical data
 alpss <-  list(para1=c(2, 1, -1, 3, -2), 
              para2=c(3, 1, 2, 4, 2), 
              para3=c(0, -1, -1, 3, 2), 
              para4=c(2, 0, -1, 4, -2) )
-b <- 0
+
+# sd of random error on alpha
+xis <- c(0.5, 0.5, 0.5, 0.5)
+
+b <- 4
 phi0 = phi1 = 2
 N <- 100 # total sample size
 # parameters
@@ -138,6 +147,7 @@ M <- 1000
 
 
 nSimu <- 1000
-post.res <- mclapply(1:nSimu, fun.test, mc.cores=70)
-sv.name <- paste0("Linear_same_", b, ".RData")
+post.res <- mclapply(1:nSimu, fun.test, mc.cores=3)
+#sv.name <- paste0("Linear_same_", b, ".RData")
+sv.name <- paste0("Linear_diff_05_", b, ".RData")
 save(post.res, file=sv.name)
