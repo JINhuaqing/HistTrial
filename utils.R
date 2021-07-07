@@ -192,9 +192,8 @@ mMKF <- function(cxs, Xs, H){
     XsArr <- replicate(m, Xs, simplify = "array")
     XsArr <- aperm(XsArr, c(3, 2, 1))
     difXArr <- cxArr - XsArr
-    dim(difXArr)
     difXArr <- aperm(difXArr, c(3, 1, 2))
-    difXmat <- matrix(difXArr, ncol=4)
+    difXmat <- matrix(difXArr, ncol=p)
     vs.vec <- dmvnorm(difXmat, sigma=H)
     vs <- matrix(vs.vec, ncol=m)
   }
@@ -526,7 +525,8 @@ info.est.fn <- function(Theta0s, data, H, lam, is.borrow=TRUE, maxit=100){
     phi0.tk <- c()
     Mu0s.tk <- list()
     Tau2s.tk <- list()
-    Xs <- data[, 3:6]
+    p <- dim(data)[2] - 2
+    Xs <- data[, 3:(p+2)]
     n <- dim(Xs)[1]
     phi0 <- 1
     Tau2s <- rep(0, n)
@@ -572,7 +572,8 @@ mu1.est.fn <- function(Theta1s, data, H, invsigma2=0, maxit=100){
     
     phi1.tk <- c()
     Mu1s.tk <- list()
-    Xs <- data[, 3:6]
+    p <- dim(data)[2] - 2
+    Xs <- data[, 3:(p+2)]
     n <- dim(Xs)[1]
     phi1 <- 1
     
