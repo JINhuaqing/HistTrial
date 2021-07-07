@@ -57,9 +57,9 @@ fun.test <- function(i){
         var.info <- post.var.mu0.fn(cx, res)
         var.ref <- post.var.mu0.fn(cx, res0)
         R <- var.ref/var.info
-        ass.res <- RPS.design(cx, data[, 3:6], data$Z, hs, R)
-        ass.res.no <- RPS.design(cx, data[, 3:6], data.no$Z, hs, R=1)
-        # ass.res <- RBC.design(cx, data[, 3:6], data$Z, hs, R)
+        ass.res <- RPS.design(cx, data[, 3:(p+2)], data$Z, hs, R)
+        ass.res.no <- RPS.design(cx, data[, 3:(p+2)], data.no$Z, hs, R=1)
+        # ass.res <- RBC.design(cx, data[, 3:(p+2)], data$Z, hs, R)
         
         Xs <- rbind(Xs, cx)
         Zs <- c(Zs, ass.res$grp-1)
@@ -104,7 +104,8 @@ fun.test <- function(i){
     }
     sps.trts <- lapply(1:M, post.prob.trt)
     
-    rv <- list(mtrt=c(trt.eff, trt.eff.no), sps.trts=sps.trts, data=data, data.no=data.no)
+    print(res$tau2s)
+    rv <- list(mtrt=c(trt.eff, trt.eff.no), sps.trts=sps.trts, data=data, data.no=data.no, res0=res)
     rv
 }
 
@@ -118,15 +119,15 @@ betass <- list(
 
 
 # parameters for historical data
-alpss <-  list(para1=c(2, 1, -1, 3, -2), 
-             para2=c(3, 1, 2, 4, 2), 
-             para3=c(0, -1, -1, 3, 2), 
-             para4=c(2, 0, -1, 4, -2) )
-
+#alpss <-  list(para1=c(2, 1, -1, 3, -2), 
+#             para2=c(3, 1, 2, 4, 2), 
+#             para3=c(0, -1, -1, 3, 2), 
+#             para4=c(2, 0, -1, 4, -2) )
+#
 # sd of random error on alpha
-xis <- c(0.5, 0.5, 0.5, 0.5)
+xis <- c(0, 0.5, 0.5, 0)
 
-b <- 4
+b <- 2
 phi0 = phi1 = 2
 N <- 100 # total sample size
 # parameters
@@ -134,9 +135,11 @@ lam <- 0.1
 hs <- rep(2.1, 4)
 x.tps <- c(2, 2, "c", "c")
 #x.tps <- c(2, 2, 2, 2)
+p <- length(x.tps)
 
 tXs <- gen.Data.Xs(1000, x.tps)
-H <- diag(c(0.1, 0.1, 0.1, 0.1)/2)
+H <- diag(rep(1, p)/2)
+#H <- diag(rep(0.1, p)/2)
 
 # initial dataset
 n0 <- 20
@@ -147,7 +150,7 @@ M <- 1000
 
 
 nSimu <- 1000
-post.res <- mclapply(1:nSimu, fun.test, mc.cores=3)
+post.res <- mclapply(1:nSimu, fun.test, mc.cores=7)
 #sv.name <- paste0("Linear_same_", b, ".RData")
-sv.name <- paste0("Linear_diff_05_", b, ".RData")
+sv.name <- paste0("Linear_diff_sub_05_", b, ".RData")
 save(post.res, file=sv.name)

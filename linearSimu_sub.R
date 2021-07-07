@@ -104,6 +104,7 @@ fun.test <- function(i){
     }
     sps.trts <- lapply(1:M, post.prob.trt)
     
+    print(res$tau2s)
     rv <- list(mtrt=c(trt.eff, trt.eff.no), sps.trts=sps.trts, data=data, data.no=data.no, res0=res)
     rv
 }
@@ -130,7 +131,7 @@ b <- 2
 phi0 = phi1 = 2
 N <- 100 # total sample size
 # parameters
-lam <- 0.5
+lam <- 10
 hs <- rep(2.1, 4)
 x.tps <- c(2, 2, "c", "c")
 x.tps <- c(2, 2)
