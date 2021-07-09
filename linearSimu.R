@@ -1,8 +1,8 @@
 #rm(list=ls())
 library(magrittr)
 library(dplyr)
-setwd("/home/huaqingj/MyResearch/HistTrial")
-#setwd("/home/r6user2/Documents/TQ/HistTrial")
+#setwd("/home/huaqingj/MyResearch/HistTrial")
+setwd("/home/r6user2/Documents/TQ/HistTrial")
 #setwd("C:/Users/JINHU/Documents/ProjectCode/HistTrial")
 source("utils.R")
 library(parallel)
@@ -104,7 +104,7 @@ fun.test <- function(i){
     }
     sps.trts <- lapply(1:M, post.prob.trt)
     
-    print(res$tau2s)
+    # print(res$tau2s)
     rv <- list(mtrt=c(trt.eff, trt.eff.no), sps.trts=sps.trts, data=data, data.no=data.no, res0=res)
     rv
 }
@@ -125,9 +125,9 @@ betass <- list(
 #             para4=c(2, 0, -1, 4, -2) )
 #
 # sd of random error on alpha
-xis <- c(0, 0.5, 0.5, 0)
+xis <- c(0, 0, 0, 0)
 
-b <- 2
+b <- 4
 phi0 = phi1 = 2
 N <- 100 # total sample size
 # parameters
@@ -150,7 +150,7 @@ M <- 1000
 
 
 nSimu <- 1000
-post.res <- mclapply(1:nSimu, fun.test, mc.cores=7)
-#sv.name <- paste0("Linear_same_", b, ".RData")
-sv.name <- paste0("Linear_diff_sub_05_", b, ".RData")
+post.res <- mclapply(1:nSimu, fun.test, mc.cores=35)
+sv.name <- paste0("Linear_same_LargeH_", b, ".RData")
+#sv.name <- paste0("Linear_diff_sub_05_", b, ".RData")
 save(post.res, file=sv.name)
