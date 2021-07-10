@@ -10,6 +10,7 @@ library(kedd)
 
 
 
+
 # generate the covariates
 gen.Data.Xs <- function(n, X.tps){
   # args
@@ -373,7 +374,7 @@ optTau <- function(x, data, Mu0s, lam, Theta0s, H){
     den <- sum(sZs * ks * (Mu0s-Theta0s)**2)
     tau2.td <- num/den
     
-    tau2 <- softH(tau2.td, lam)
+    tau2 <- euclidean_proj_l1ball(tau2.td, lam)
     return(tau2)
 }
 
@@ -402,9 +403,10 @@ mOptTau <- function(cxs, data, Mu0s, lam, Theta0s, H){
         
         num <- colSums(sZsMat * mks)
         den <- colSums(sZsMat * mks * sseMat) 
-        tau2.td <- num/den
+        tau2.td <- num/den # m
         
-        tau2 <- softH(tau2.td, lam)
+        m <- length(tau2.td)
+        tau2 <-  euclidean_proj_l1ball(tau2.td, lam*sqrt(log(m)/m))
     }
     return(tau2)
 }

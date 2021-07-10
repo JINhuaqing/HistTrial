@@ -4,6 +4,7 @@ library(magrittr)
 library(dplyr)
 setwd("C:/Users/JINHU/Documents/ProjectCode/HistTrial")
 source("utils.R")
+source("simplex.R")
 
 CI.fn <- function(errs){
   m.v <- mean(errs)
@@ -32,8 +33,8 @@ betass <- list(para1=c(2, 1, -1, 3, -2),
                   )
 
 alpss <-  list(para1=c(2, 1, -1, 3, -2), 
-             para2=c(0, -1, -1, 3, 2), 
              para3=c(3, 1, 2, 4, 2), 
+             para2=c(0, -1, -1, 3, 2), 
              para4=c(2, 0, -1, 4, -2) )
 
 # Simulation 
@@ -42,7 +43,7 @@ n <- 100
 b <- 2
 phi0 <- 1
 x.tps <- c(2, 2, "c", "c")
-lam <- 0.1
+lam <- 1000
 
 # posterior variance and tau2s
 {
@@ -60,9 +61,9 @@ for (i in 1:nSimu){
     data <- as.data.frame(data)
     names(data)[1:2] <- c("Y", "Z")
     
-    lam <- 0.05
-    H <- diag(c(bw.nrd(data$X1), bw.nrd(data$X2), bw.nrd(data$X3), bw.nrd(data$X4)))
-    #H <- diag(c(0.05, 0.05, bw.nrd(data$X3), bw.nrd(data$X4)))
+    lam <- 1000
+    #H <- diag(c(bw.nrd(data$X1), bw.nrd(data$X2), bw.nrd(data$X3), bw.nrd(data$X4)))
+    H <- diag(c(0.05, 0.05, 0.05, 0.05))
     
     alpMat <- sub.Paras.fn(Xs.t, alpss)
     Theta0s <- curMean.fn(Xs.t, Zs, alpMat, b=0)
@@ -93,12 +94,14 @@ boxplot(tau2s~idxs, data=post.m.data, xlab="Subgroups", ylab="Tau2s")
 {
 nSimu <- 100
 n <- 100
-lam <- 0.10
+phi0 <- 4
+lam <- 1e5
 trt.effbs <- list()
 for (i in 1:nSimu){
   print(i)
   # train data
   Xs.t <- gen.Data.Xs(n, x.tps)
+  #Xs.t <- rbind(Xs.t, Xs.t)
   betMat <- sub.Paras.fn(Xs.t, betass)
   Zs <- c(rep(0, n/2), rep(1, n/2))
   Ys <- curMean.fn(Xs.t, Zs, betMat, b) + rnorm(n, sd=phi0)
@@ -106,7 +109,8 @@ for (i in 1:nSimu){
   data <- as.data.frame(data)
   names(data)[1:2] <- c("Y", "Z")
   
-  H <- diag(c(0.1, 0.1, 0.3, 0.3))
+  H <- diag(c(0.1, 0.1, 0.1, 0.1)/2)
+  #H <- diag(c(0.1, 0.1, 0.1, 0.1)*5)
   
   alpMat <- sub.Paras.fn(Xs.t, alpss)
   Theta0s <- curMean.fn(Xs.t, Zs, alpMat, b=0)
@@ -133,7 +137,7 @@ rbind(CI.fn(errsmat[, 1]), CI.fn(errsmat[, 2]))
   
 # Compare  for phi0
 {
-lam <- 0.1
+lam <- 1000
 phi0s <- c()
 phi0s.no <- c()
 n <- 50
