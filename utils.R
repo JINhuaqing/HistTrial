@@ -406,7 +406,8 @@ mOptTau <- function(cxs, data, Mu0s, lam, Theta0s, H){
         tau2.td <- num/den # m
         
         m <- length(tau2.td)
-        tau2 <-  euclidean_proj_l1ball(tau2.td, lam*sqrt(log(m)/m))
+        tau2 <-  euclidean_proj_l1ball(tau2.td, lam*m)
+        #tau2 <-  euclidean_proj_l1ball(tau2.td, lam*sqrt(log(m)/m))
     }
     return(tau2)
 }
@@ -532,34 +533,37 @@ info.est.fn <- function(Theta0s, data, H, lam, is.borrow=TRUE, maxit=100){
     n <- dim(Xs)[1]
     phi0 <- 1
     Tau2s <- rep(0, n)
-    
-    for (i in 1:maxit){
-        Mu0s <- mOptMu0(as.matrix(Xs), data, Tau2s, phi0, Theta0s, H)
-        Mu0s.tk[[i]] <- Mu0s
-        
-        if (is.borrow){
-            Tau2s  <- mOptTau(as.matrix(Xs), data, Mu0s, lam, Theta0s, H)
-        }
-        Tau2s.tk[[i]] <- Tau2s
-        
-        phi0 <- optPhi(data, Mu0s)
-        phi0.tk <- c(phi0.tk, phi0)
-        
-        if (i > 1){
-            err.tau2 <- sum((Tau2s.tk[[i]] - Tau2s.tk[[i-1]])**2)
-            err.mu <- sum((Mu0s.tk[[i]] - Mu0s.tk[[i-1]])**2)
-            err.phi <- (phi0.tk[i] - phi0.tk[i-1])**2
+
+    # mu0s estimator without borrowing
+    Mu0s.no <- mOptMu0(as.matrix(Xs), data, Tau2s, phi0, Theta0s, H)
+    phi0 <- optPhi(data, Mu0s.no) # the phi0 estimator without borrowing
+
+    if (is.borrow){
+        for (i in 1:maxit){
+            Mu0s <- mOptMu0(as.matrix(Xs), data, Tau2s, phi0, Theta0s, H)
+            Mu0s.tk[[i]] <- Mu0s
             
-            err.all <- max(c(err.tau2, err.mu, err.phi))
-            if (err.all < 1e-5){
-                break
+            Tau2s  <- mOptTau(as.matrix(Xs), data, Mu0s, lam, Theta0s, H)
+            Tau2s.tk[[i]] <- Tau2s
+            
+            if (i > 1){
+                err.tau2 <- sum((Tau2s.tk[[i]] - Tau2s.tk[[i-1]])**2)
+                err.mu <- sum((Mu0s.tk[[i]] - Mu0s.tk[[i-1]])**2)
+                
+                err.all <- max(c(err.tau2, err.mu))
+                if (err.all < 1e-5){
+                    break
+                }
             }
+            
         }
         
+        res <- list(tau2s=Tau2s, mu0s=Mu0s, phi0=phi0, mu0tk=Mu0s.tk, tau2stk=Tau2s.tk,
+                theta0s=Theta0s, H=H, data=data, lam=lam)
+    }else{
+        res <- list(tau2s=Tau2s, mu0s=Mu0s.no, phi0=phi0, theta0s=Theta0s, H=H, data=data, lam=lam)
     }
     
-    res <- list(tau2s=Tau2s, mu0s=Mu0s, phi0=phi0, mu0tk=Mu0s.tk, phi0tk=phi0.tk, tau2stk=Tau2s.tk,
-                theta0s=Theta0s, H=H, data=data, lam=lam)
     res
 }
 
@@ -578,27 +582,16 @@ mu1.est.fn <- function(Theta1s, data, H, invsigma2=0, maxit=100){
     Xs <- data[, 3:(p+2)]
     n <- dim(Xs)[1]
     phi1 <- 1
+
+    # Mus1 without borrowing
+    Mu1s.no <- mOptMu1(as.matrix(Xs), data, 0, phi1, Theta1s, H)
+    phi1 <- optPhi(data, Mu1s.no)
     
-    for (i in 1:maxit){
-        Mu1s <- mOptMu1(as.matrix(Xs), data, invsigma2, phi1, Theta1s, H)
-        Mu1s.tk[[i]] <- Mu1s
+    # Mus1 with info
+    Mu1s <- mOptMu1(as.matrix(Xs), data, invsigma2, phi1, Theta1s, H)
         
-        phi1 <- optPhi(data, Mu1s)
-        phi1.tk <- c(phi1.tk, phi1)
-        
-        if (i > 1){
-            err.mu <- sum((Mu1s.tk[[i]] - Mu1s.tk[[i-1]])**2)
-            err.phi <- (phi1.tk[i] - phi1.tk[i-1])**2
-            
-            err.all <- max(c(err.mu, err.phi))
-            if (err.all < 1e-5){
-                break
-            }
-        }
-        
-    }
     
-    res <- list(mu1s=Mu1s, phi1=phi1, mu1tk=Mu1s.tk, phi1tk=phi1.tk, invsigma2=invsigma2,
+    res <- list(mu1s=Mu1s, phi1=phi1, invsigma2=invsigma2,
                 theta1s=Theta1s, H=H, data=data)
     res
 }

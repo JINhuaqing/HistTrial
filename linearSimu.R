@@ -2,10 +2,12 @@
 library(magrittr)
 library(dplyr)
 #setwd("/home/huaqingj/MyResearch/HistTrial")
-setwd("/home/r6user2/Documents/TQ/HistTrial")
+setwd("/home/r13user3/MyResearch/HistTrial")
 #setwd("C:/Users/JINHU/Documents/ProjectCode/HistTrial")
 source("utils.R")
+source("simplex.R")
 library(parallel)
+seeds <- 1:10000
 
 CI.fn <- function(errs){
   m.v <- mean(errs)
@@ -19,9 +21,10 @@ CI.fn <- function(errs){
 }
 
 fun.test <- function(i){
+    set.seed(seeds[i])
     alpss <- betass
     for (jj in 1:4){
-        alpss[[jj]] <- betass[[jj]] + rnorm(1, sd=xis[jj])
+        alpss[[jj]] <- betass[[jj]] + rnorm(p, sd=xis[jj])
     }
     print(i)
     Xs <- gen.Data.Xs(n0, x.tps)
@@ -44,9 +47,11 @@ fun.test <- function(i){
     data.no <- cbind(Ys.no, Zs.no, Xs)
     data.no <- as.data.frame(data.no)
     colnames(data.no)[1:2] <- c("Y", "Z")
+    Rs <- rep(1, N) # record R 
     
     for (j in (n0+1):N){
         cx <- unlist(gen.Data.Xs(1, x.tps))
+        #print(j)
         
         # H <- diag(c(bw.nrd(data$X1), bw.nrd(data$X2), bw.nrd(data$X3), bw.nrd(data$X4)))
         alpMat <- sub.Paras.fn(Xs, alpss)
@@ -57,6 +62,7 @@ fun.test <- function(i){
         var.info <- post.var.mu0.fn(cx, res)
         var.ref <- post.var.mu0.fn(cx, res0)
         R <- var.ref/var.info
+        Rs[j] <- R
         ass.res <- RPS.design(cx, data[, 3:(p+2)], data$Z, hs, R)
         ass.res.no <- RPS.design(cx, data[, 3:(p+2)], data.no$Z, hs, R=1)
         # ass.res <- RBC.design(cx, data[, 3:(p+2)], data$Z, hs, R)
@@ -90,13 +96,16 @@ fun.test <- function(i){
     
     res.mu1 <- mu1.est.fn(data$Y, data, H)
     res.no.mu1 <- mu1.est.fn(data.no$Y, data.no, H)
-    trt.eff <- mean(mu1.efn(as.matrix(Xs), res.mu1)) -  mean(mu0.efn(as.matrix(Xs), res))
-    trt.eff.no <- mean(mu1.efn(as.matrix(Xs), res.no.mu1)) -  mean(mu0.efn(as.matrix(Xs), res.no))
+    zeroPt <- rep(0, p)
+
+    trt.eff <- mean(mu1.efn(zeroPt, res.mu1)) -  mean(mu0.efn(zeroPt, res))
+    trt.eff.no <- mean(mu1.efn(zeroPt, res.no.mu1)) -  mean(mu0.efn(zeroPt, res.no))
+    #trt.eff.no <- mean(mu1.efn(as.matrix(Xs), res.no.mu1)) -  mean(mu0.efn(as.matrix(Xs), res.no))
     post.prob.trt <- function(i){
-        sps0 <- r.postMu0(as.matrix(Xs), res)
-        sps0.no <- r.postMu0(as.matrix(Xs), res.no)
-        sps1 <- r.postMu1(as.matrix(Xs), res.mu1)
-        sps1.no <- r.postMu1(as.matrix(Xs), res.no.mu1)
+        sps0 <- r.postMu0(zeroPt, res)
+        sps0.no <- r.postMu0(zeroPt, res.no)
+        sps1 <- r.postMu1(zeroPt, res.mu1)
+        sps1.no <- r.postMu1(zeroPt, res.no.mu1)
         
         sps.trt <- mean(sps1) - mean(sps0)
         sps.trt.no <- mean(sps1.no) - mean(sps0.no)
@@ -105,7 +114,7 @@ fun.test <- function(i){
     sps.trts <- lapply(1:M, post.prob.trt)
     
     # print(res$tau2s)
-    rv <- list(mtrt=c(trt.eff, trt.eff.no), sps.trts=sps.trts, data=data, data.no=data.no, res0=res)
+    rv <- list(mtrt=c(trt.eff, trt.eff.no), sps.trts=sps.trts, data=data, data.no=data.no, res0=res, Rs=Rs)
     rv
 }
 
@@ -127,19 +136,18 @@ betass <- list(
 # sd of random error on alpha
 xis <- c(0, 0, 0, 0)
 
-b <- 4
-phi0 = phi1 = 2
+b <- 2
+phi0 = phi1 = 9
 N <- 100 # total sample size
 # parameters
-lam <- 0.1
+lam <- 1
 hs <- rep(2.1, 4)
 x.tps <- c(2, 2, "c", "c")
 #x.tps <- c(2, 2, 2, 2)
 p <- length(x.tps)
 
-tXs <- gen.Data.Xs(1000, x.tps)
+#H <- diag(rep(1, p)/2)
 H <- diag(rep(1, p)/2)
-#H <- diag(rep(0.1, p)/2)
 
 # initial dataset
 n0 <- 20
@@ -150,7 +158,6 @@ M <- 1000
 
 
 nSimu <- 1000
-post.res <- mclapply(1:nSimu, fun.test, mc.cores=35)
-sv.name <- paste0("Linear_same_LargeH_", b, ".RData")
-#sv.name <- paste0("Linear_diff_sub_05_", b, ".RData")
+post.res <- mclapply(1:nSimu, fun.test, mc.cores=15)
+sv.name <- paste0("Simplex-Linear-diff-0", "-b-", b, "-N-", N, "-lam-", lam, "-phi0-", phi0, ".RData")
 save(post.res, file=sv.name)
