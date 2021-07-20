@@ -21,7 +21,7 @@ CI.fn <- function(errs){
 }
 
 fun.test <- function(i){
-    set.seed(seeds[i])
+    #set.seed(seeds[i])
     alpss <- betass
     for (jj in 1:4){
         alpss[[jj]] <- betass[[jj]] + rnorm(p, sd=xis[jj])
@@ -56,15 +56,15 @@ fun.test <- function(i){
         # H <- diag(c(bw.nrd(data$X1), bw.nrd(data$X2), bw.nrd(data$X3), bw.nrd(data$X4)))
         alpMat <- sub.Paras.fn(Xs, alpss)
         Theta0s <- curMean.fn(Xs, Zs, alpMat, b=0)
-        res <- info.est.fn(Theta0s, data, H, lam)
-        res0 <- info.est.fn(Theta0s, data, H, lam, is.borrow=FALSE)
+        res <- mu0.info.est.fn(Theta0s, data, H, lam, invgam2=invgam2)
+        res.ref <- mu0.info.est.fn(Theta0s, data, H, lam, phi0=res$phi0, invgam2=invgam2, is.ref=TRUE)
         
         var.info <- post.var.mu0.fn(cx, res)
-        var.ref <- post.var.mu0.fn(cx, res0)
+        var.ref <- post.var.mu0.fn(cx, res.ref)
         R <- var.ref/var.info
         Rs[j] <- R
-        ass.res <- RPS.design(cx, data[, 3:(p+2)], data$Z, hs, R)
-        ass.res.no <- RPS.design(cx, data[, 3:(p+2)], data.no$Z, hs, R=1)
+        ass.res <- RBC.design(cx, data[, 3:(p+2)], data$Z, hs, R)
+        ass.res.no <- RBC.design(cx, data[, 3:(p+2)], data.no$Z, hs, R=1)
         # ass.res <- RBC.design(cx, data[, 3:(p+2)], data$Z, hs, R)
         
         Xs <- rbind(Xs, cx)
@@ -91,16 +91,18 @@ fun.test <- function(i){
     
     alpMat <- sub.Paras.fn(Xs, alpss)
     Theta0s <- curMean.fn(Xs, Zs, alpMat, b=0)
-    res <- info.est.fn(Theta0s, data, H, lam)
-    res.no <- info.est.fn(Theta0s, data.no, H, lam, is.borrow=FALSE)
+    res <- mu0.info.est.fn(Theta0s, data, H, lam, invgam2=invgam2)
+    res.no <- mu0.no.est.fn(data.no, H)
     
-    res.mu1 <- mu1.est.fn(data$Y, data, H)
-    res.no.mu1 <- mu1.est.fn(data.no$Y, data.no, H)
-    zeroPt <- rep(0, p)
+    res.mu1 <- mu1.no.est.fn(data, H)
+    res.no.mu1 <- mu1.no.est.fn(data.no, H)
+    #zeroPt <- matrix(rep(0, p), nrow=1)
+    zeroPt <- as.matrix(Xs)
 
-    trt.eff <- mean(mu1.efn(zeroPt, res.mu1)) -  mean(mu0.efn(zeroPt, res))
-    trt.eff.no <- mean(mu1.efn(zeroPt, res.no.mu1)) -  mean(mu0.efn(zeroPt, res.no))
-    #trt.eff.no <- mean(mu1.efn(as.matrix(Xs), res.no.mu1)) -  mean(mu0.efn(as.matrix(Xs), res.no))
+    #trt.eff <- mean(mu1.efn(zeroPt, res.mu1)) -  mean(mu0.efn(zeroPt, res))
+    trt.eff <- mean(mu1.efn(as.matrix(Xs), res.mu1)) -  mean(mu0.efn(as.matrix(Xs), res))
+    #trt.eff.no <- mean(mu1.efn(zeroPt, res.no.mu1)) -  mean(mu0.efn(zeroPt, res.no))
+    trt.eff.no <- mean(mu1.efn(as.matrix(Xs), res.no.mu1)) -  mean(mu0.efn(as.matrix(Xs), res.no))
     post.prob.trt <- function(i){
         sps0 <- r.postMu0(zeroPt, res)
         sps0.no <- r.postMu0(zeroPt, res.no)
@@ -114,7 +116,7 @@ fun.test <- function(i){
     sps.trts <- lapply(1:M, post.prob.trt)
     
     # print(res$tau2s)
-    rv <- list(mtrt=c(trt.eff, trt.eff.no), sps.trts=sps.trts, data=data, data.no=data.no, res0=res, Rs=Rs)
+    rv <- list(mtrt=c(trt.eff, trt.eff.no), sps.trts=sps.trts, data=data, data.no=data.no, res=res, Rs=Rs)
     rv
 }
 
@@ -135,19 +137,20 @@ betass <- list(
 #
 # sd of random error on alpha
 xis <- c(0, 0, 0, 0)
+invgam2 <- 1
 
-b <- 2
-phi0 = phi1 = 9
-N <- 100 # total sample size
+b <- 4
+phi0 = phi1 = 1
+N <- 150 # total sample size
 # parameters
-lam <- 1
+lam <- 20
 hs <- rep(2.1, 4)
 x.tps <- c(2, 2, "c", "c")
 #x.tps <- c(2, 2, 2, 2)
 p <- length(x.tps)
 
 #H <- diag(rep(1, p)/2)
-H <- diag(rep(1, p)/2)
+H <- diag(rep(0.1, p))
 
 # initial dataset
 n0 <- 20
@@ -158,6 +161,10 @@ M <- 1000
 
 
 nSimu <- 1000
-post.res <- mclapply(1:nSimu, fun.test, mc.cores=15)
-sv.name <- paste0("Simplex-Linear-diff-0", "-b-", b, "-N-", N, "-lam-", lam, "-phi0-", phi0, ".RData")
-save(post.res, file=sv.name)
+for (phi0 in c(5, 7, 9)){
+        paras <- list(invgam2=invgam2, b=b, phi0=phi0, phi1=phi1, N=N, lam=lam, hs=hs, x.tps=x.tps, H=H, M=M, xis=xis)
+        post.res <- mclapply(1:nSimu, fun.test, mc.cores=40)
+        sv.name <- paste0("./results/Simplex-Linear-diff-0", "-b-", b, "-N-", N, "-lam-", lam, "-phi0-", phi0, "-invgam2-", invgam2, "-nSimu-", nSimu, ".RData")
+        #sv.name <- paste0("./results/Simplex-Linear-diff-Sub10", "-b-", b, "-N-", N, "-lam-", lam, "-phi0-", phi0, "-invgam2-", invgam2, "-nSimu-", nSimu, ".RData")
+        save(post.res, paras, file=sv.name)
+}

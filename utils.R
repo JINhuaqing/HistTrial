@@ -51,7 +51,7 @@ sub.Paras.fn <- function(Xs, betass){
     
 }
 # Generate the mean of current data given the Xs, Zs, and true parameters
-# Very depends on model
+# Vary depends on model
 curMean.fn <- function(Xs, Zs, betMat, b){
   #args:
   #  Xs: covariates matrix, n x p, data frame
@@ -357,7 +357,7 @@ mOptMu0 <- function(cxs, data, Tau2s, phi0, Theta0s, H){
 }
 
 # optimize tau2(X) given [mu0(X1), ..., mu0(Xn)]
-optTau <- function(x, data, Mu0s, lam, Theta0s, H){
+optTau <- function(x, data, Mu0s, lam, Theta0s, H, invgam2=0){
   #args
   #    x: current data point, 1xp
   #    data: the datase, n x (2+p): [Y, Z, Xs]
@@ -365,20 +365,21 @@ optTau <- function(x, data, Mu0s, lam, Theta0s, H){
   #    lam: penalty parameter
   #    Theta0s: the [theta0(X1), ..., theta0(Xn)], 1 x n
   #    H: cov mat, p x p
+  #    invgam2: 1/invgam2 is the variance parameter of HN prior
     p <-length(x)
     Xs <- as.matrix(data[, 3:(p+2)])
     sZs <- 1 - data$Z
     ks <- MKF(x, Xs, H=H)
     
     num <- sum(sZs * ks)
-    den <- sum(sZs * ks * (Mu0s-Theta0s)**2)
+    den <- sum(sZs * ks * (Mu0s-Theta0s)**2) + invgam2
     tau2.td <- num/den
     
     tau2 <- euclidean_proj_l1ball(tau2.td, lam)
     return(tau2)
 }
 
-mOptTau <- function(cxs, data, Mu0s, lam, Theta0s, H){
+mOptTau <- function(cxs, data, Mu0s, lam, Theta0s, H, invgam2=0){
   
   #args
   #    cxs: current data point, mxp
@@ -387,8 +388,9 @@ mOptTau <- function(cxs, data, Mu0s, lam, Theta0s, H){
   #    lam: penalty parameter
   #    Theta0s: the [theta0(X1), ..., theta0(Xn)], 1 x n
   #    H: cov mat, p x p
+  #    invgam2: 1/invgam2 is the variance parameter of HN prior
     if (is.null(dim(cxs))){
-        tau2 <- optTau(cxs, data, Mu0s, lam, Theta0s, H)
+        tau2 <- optTau(cxs, data, Mu0s, lam, Theta0s, H, invgam2)
     }else{
         p <-dim(cxs)[2]
         m <-dim(cxs)[1]
@@ -402,19 +404,19 @@ mOptTau <- function(cxs, data, Mu0s, lam, Theta0s, H){
         
         
         num <- colSums(sZsMat * mks)
-        den <- colSums(sZsMat * mks * sseMat) 
+        den <- colSums(sZsMat * mks * sseMat)  + invgam2
         tau2.td <- num/den # m
         
         m <- length(tau2.td)
-        tau2 <-  euclidean_proj_l1ball(tau2.td, lam*m)
+        tau2 <-  euclidean_proj_l1ball(tau2.td, lam*log(m))
         #tau2 <-  euclidean_proj_l1ball(tau2.td, lam*sqrt(log(m)/m))
     }
     return(tau2)
 }
 
 
-# can be used for both phi1, ph0
-optPhi <- function(data, Mus){
+# can be used for ph0
+optPhi0 <- function(data, Mus){
   #args
   #    data: the datase, n x (2+p): [Y, Z, Xs]
   #    Mus: the [mu0(X1), ..., mu0(Xn)], 1 x n
@@ -429,6 +431,21 @@ optPhi <- function(data, Mus){
     res
 }
 
+# can be used for phi1
+optPhi1 <- function(data, Mus){
+  #args
+  #    data: the datase, n x (2+p): [Y, Z, Xs]
+  #    Mus: the [mu0(X1), ..., mu0(Xn)], 1 x n
+
+    a <- 0.01
+    b <-  0.01
+    Zs <- data$Z
+
+    num <- sum(Zs * (data$Y - Mus)**2)/2 + b
+    den <- 1 + a + sum(Zs)/2
+    res <- sqrt(num/den)
+    res
+}
 
 # function to evaluate estimated mu0(X)
 mu0.efn <- function(xs, res){
@@ -443,7 +460,7 @@ mu1.efn <- function(xs, res){
 
 # function to evaluate estimated tau2(X)
 tau2.efn <- function(xs, res){
-    rv <- mOptTau(xs, res$data, res$mu0s, res$lam, res$theta0s, res$H)
+    rv <- mOptTau(xs, res$data, res$mu0s, res$lam, res$theta0s, res$H, res$invgam2)
     rv
 }
 
@@ -515,14 +532,14 @@ post.mean.mu0.fn <- function(cxs, res){
   return(rv)
 }
 
-# function for estimate mu0s, tau2s, and phi0
-info.est.fn <- function(Theta0s, data, H, lam, is.borrow=TRUE, maxit=100){
+# function for estimate mu0s, tau2s, and phi0 under info and reference model
+mu0.info.est.fn <- function(Theta0s, data, H, lam, phi0=NA, invgam2=0, is.ref=FALSE, maxit=100){
   #args:
   #  Theta0s: Estimated ys based on historical data
   #  data: the dataset, n x (2+p): [Y, Z, Xs]
   #  H: cov mat, p x p
   #  lam: The penalty parameters
-  #  is.borrow: if true, borrows from Theta0s, otherwise, no borrowing
+  #  is.ref: if true, reture the results of reference model distribution
   #  maxit: Maximal number of times for iteration
     
     phi0.tk <- c()
@@ -531,44 +548,66 @@ info.est.fn <- function(Theta0s, data, H, lam, is.borrow=TRUE, maxit=100){
     p <- dim(data)[2] - 2
     Xs <- data[, 3:(p+2)]
     n <- dim(Xs)[1]
-    phi0 <- 1
     Tau2s <- rep(0, n)
 
-    # mu0s estimator without borrowing
-    Mu0s.no <- mOptMu0(as.matrix(Xs), data, Tau2s, phi0, Theta0s, H)
-    phi0 <- optPhi(data, Mu0s.no) # the phi0 estimator without borrowing
 
-    if (is.borrow){
+    if (!is.ref| is.na(phi0)){
+        phi0 <- 1
         for (i in 1:maxit){
             Mu0s <- mOptMu0(as.matrix(Xs), data, Tau2s, phi0, Theta0s, H)
             Mu0s.tk[[i]] <- Mu0s
+
+            phi0 <- optPhi0(data, Mu0s)
+            phi0.tk[i] <- phi0
             
-            Tau2s  <- mOptTau(as.matrix(Xs), data, Mu0s, lam, Theta0s, H)
+            Tau2s  <- mOptTau(as.matrix(Xs), data, Mu0s, lam, Theta0s, H, invgam2)
             Tau2s.tk[[i]] <- Tau2s
             
             if (i > 1){
-                err.tau2 <- sum((Tau2s.tk[[i]] - Tau2s.tk[[i-1]])**2)
-                err.mu <- sum((Mu0s.tk[[i]] - Mu0s.tk[[i-1]])**2)
+                err.tau2 <- mean((Tau2s.tk[[i]] - Tau2s.tk[[i-1]])**2)
+                err.mu <- mean((Mu0s.tk[[i]] - Mu0s.tk[[i-1]])**2)
+                err.phi0 <- mean((phi0.tk[[i]] - phi0.tk[[i-1]])**2)
                 
-                err.all <- max(c(err.tau2, err.mu))
+                err.all <- max(c(err.tau2, err.mu, err.phi0))
                 if (err.all < 1e-5){
                     break
                 }
             }
-            
         }
-        
+   }
+
+    if (!is.ref){
         res <- list(tau2s=Tau2s, mu0s=Mu0s, phi0=phi0, mu0tk=Mu0s.tk, tau2stk=Tau2s.tk,
-                theta0s=Theta0s, H=H, data=data, lam=lam)
+                theta0s=Theta0s, H=H, data=data, lam=lam, phi0.tk=phi0.tk, invgam2=invgam2)
     }else{
-        res <- list(tau2s=Tau2s, mu0s=Mu0s.no, phi0=phi0, theta0s=Theta0s, H=H, data=data, lam=lam)
+        Tau20s <- rep(0, n)
+        Mu0s.no <- mOptMu0(as.matrix(Xs), data, Tau20s, phi0, Theta0s, H)
+        res <- list(tau2s=Tau20s, mu0s=Mu0s.no, phi0=phi0, theta0s=Theta0s, H=H, data=data, lam=lam, invgam2=invgam2)
     }
     
     res
 }
 
-# function for estimate mu1s, phi
-mu1.est.fn <- function(Theta1s, data, H, invsigma2=0, maxit=100){
+# estimate mu0, phi0 when non-borrow
+mu0.no.est.fn <- function(data, H){
+  #args:
+  #  data: the dataset, n x (2+p): [Y, Z, Xs]
+  #  H: cov mat, p x p
+    
+    p <- dim(data)[2] - 2
+    Xs <- data[, 3:(p+2)]
+    n <- dim(Xs)[1]
+    Tau2s <- rep(0, n)
+    phi0 <- 1
+    Mu0s <- mOptMu0(as.matrix(Xs), data, Tau2s, phi0, Tau2s, H)
+    phi0 <- optPhi0(data, Mu0s)
+
+    res <- list(mu0s=Mu0s, phi0=phi0, H=H, data=data, tau2s=Tau2s, theta0s=rep(0, n))
+    res
+}
+
+# function for estimate mu1s, phi when borrowing
+mu1.info.est.fn <- function(Theta1s, data, H, invsigma2=0, maxit=100){
   #args:
   #  Theta1s: Estimated ys based on historical data
   #  data: the dataset, n x (2+p): [Y, Z, Xs]
@@ -581,19 +620,48 @@ mu1.est.fn <- function(Theta1s, data, H, invsigma2=0, maxit=100){
     p <- dim(data)[2] - 2
     Xs <- data[, 3:(p+2)]
     n <- dim(Xs)[1]
+
+    phi1 <- 1
+    for (i in 1:maxit){
+        Mu1s <- mOptMu1(as.matrix(Xs), data, invsigma2, phi1, Theta1s, H)
+        Mu1s.tk[[i]] <- Mu1s
+
+        phi1 <- optPhi1(data, Mu1s)
+        phi1.tk[i] <- phi1
+        
+        if (i > 1){
+            err.mu <- sum((Mu1s.tk[[i]] - Mu1s.tk[[i-1]])**2)
+            err.phi1 <- sum((phi1.tk[[i]] - phi1.tk[[i-1]])**2)
+            
+            err.all <- max(c(err.mu, err.phi1))
+            if (err.all < 1e-5){
+                break
+            }
+        }
+    }
+
+    res <- list(mu1s=Mu1s, phi1=phi1, invsigma2=invsigma2, 
+                   phi1.tk=phi1.tk, Mu1s.tk=Mu1s.tk,
+                   theta1s=Theta1s, H=H, data=data)
+    res
+}
+
+# function for estimate mu1s, phi when non-borrowing
+mu1.no.est.fn <- function(data, H){
+  #args:
+  #  data: the dataset, n x (2+p): [Y, Z, Xs]
+  #  H: cov mat, p x p
+    
+    p <- dim(data)[2] - 2
+    Xs <- data[, 3:(p+2)]
+    n <- dim(Xs)[1]
     phi1 <- 1
 
-    # Mus1 without borrowing
-    Mu1s.no <- mOptMu1(as.matrix(Xs), data, 0, phi1, Theta1s, H)
-    phi1 <- optPhi(data, Mu1s.no)
-    
-    # Mus1 with info
-    Mu1s <- mOptMu1(as.matrix(Xs), data, invsigma2, phi1, Theta1s, H)
-        
-    
-    res <- list(mu1s=Mu1s, phi1=phi1, invsigma2=invsigma2,
-                theta1s=Theta1s, H=H, data=data)
-    res
+    Mu1s <- mOptMu1(as.matrix(Xs), data, 0, phi1, rep(0, n), H)
+    phi1 <- optPhi1(data, Mu1s)
+
+
+    res <- list(mu1s=Mu1s, phi1=phi1, invsigma2=0, H=H, data=data, theta1s=rep(0, n))
 }
 
 # calculate the posterior variance of the mu1(X)
