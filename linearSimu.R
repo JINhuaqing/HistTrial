@@ -140,13 +140,13 @@ xis <- c(0, 0, 0, 0)
 invgam2 <- 1
 
 b <- 4
-phi0 = phi1 = 1
+phi0 = phi1 = 2
 N <- 150 # total sample size
 # parameters
 lam <- 20
 hs <- rep(2.1, 4)
 x.tps <- c(2, 2, "c", "c")
-#x.tps <- c(2, 2, 2, 2)
+x.tps <- c(2, 2, 2, 2)
 p <- length(x.tps)
 
 #H <- diag(rep(1, p)/2)
@@ -161,10 +161,10 @@ M <- 1000
 
 
 nSimu <- 1000
-for (phi0 in c(5, 7, 9)){
+for (N in c(30, 60, 90, 120, 150)){
         paras <- list(invgam2=invgam2, b=b, phi0=phi0, phi1=phi1, N=N, lam=lam, hs=hs, x.tps=x.tps, H=H, M=M, xis=xis)
         post.res <- mclapply(1:nSimu, fun.test, mc.cores=40)
-        sv.name <- paste0("./results/Simplex-Linear-diff-0", "-b-", b, "-N-", N, "-lam-", lam, "-phi0-", phi0, "-invgam2-", invgam2, "-nSimu-", nSimu, ".RData")
+        sv.name <- paste0("./results/Simplex-Linear-AllBinary-diff-0", "-b-", b, "-N-", N, "-lam-", lam, "-phi0-", phi0, "-invgam2-", invgam2, "-nSimu-", nSimu, ".RData")
         #sv.name <- paste0("./results/Simplex-Linear-diff-Sub10", "-b-", b, "-N-", N, "-lam-", lam, "-phi0-", phi0, "-invgam2-", invgam2, "-nSimu-", nSimu, ".RData")
         save(post.res, paras, file=sv.name)
 }
