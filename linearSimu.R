@@ -1,13 +1,39 @@
 #rm(list=ls())
 library(magrittr)
 library(dplyr)
-#setwd("/home/huaqingj/MyResearch/HistTrial")
-setwd("/home/r13user3/MyResearch/HistTrial")
+setwd("/home/huaqingj/MyResearch/HistTrial")
+#setwd("/home/r13user3/MyResearch/HistTrial")
 #setwd("C:/Users/JINHU/Documents/ProjectCode/HistTrial")
 source("utils.R")
 source("simplex.R")
 library(parallel)
 seeds <- 1:10000
+
+vec2code <- function(vec,fct=10){
+    vecF <- vec * fct
+    pre <- c()
+    if (fct == 10){
+        for (ivecF in vecF) {
+            if (ivecF < fct){
+                pre <- c(pre, "0")
+            }else{
+                pre <- c(pre, "")
+            }
+        }
+    }else if (fct==100){
+        for (ivecF in vecF) {
+            if (ivecF >= 100){
+                pre <- c(pre, "")
+            }else if(ivecF >=10){
+                pre <- c(pre, "0")
+            }else{
+                pre <- c(pre, "00")
+            }
+        }
+    }
+    idxCode <- paste0(paste0(pre, vecF), collapse="")
+    idxCode
+}
 
 CI.fn <- function(errs){
   m.v <- mean(errs)
@@ -51,7 +77,6 @@ fun.test <- function(i){
     
     for (j in (n0+1):N){
         cx <- unlist(gen.Data.Xs(1, x.tps))
-        #print(j)
         
         # H <- diag(c(bw.nrd(data$X1), bw.nrd(data$X2), bw.nrd(data$X3), bw.nrd(data$X4)))
         alpMat <- sub.Paras.fn(Xs, alpss)
@@ -96,24 +121,21 @@ fun.test <- function(i){
     
     res.mu1 <- mu1.no.est.fn(data, H)
     res.no.mu1 <- mu1.no.est.fn(data.no, H)
-    #zeroPt <- matrix(rep(0, p), nrow=1)
-    zeroPt <- as.matrix(Xs)
+    #testPt <- matrix(rep(0, p), nrow=1)
+    testPt <- as.matrix(Xs)
 
-    #trt.eff <- mean(mu1.efn(zeroPt, res.mu1)) -  mean(mu0.efn(zeroPt, res))
-    trt.eff <- mean(mu1.efn(as.matrix(Xs), res.mu1)) -  mean(mu0.efn(as.matrix(Xs), res))
-    #trt.eff.no <- mean(mu1.efn(zeroPt, res.no.mu1)) -  mean(mu0.efn(zeroPt, res.no))
-    trt.eff.no <- mean(mu1.efn(as.matrix(Xs), res.no.mu1)) -  mean(mu0.efn(as.matrix(Xs), res.no))
-    post.prob.trt <- function(i){
-        sps0 <- r.postMu0(zeroPt, res)
-        sps0.no <- r.postMu0(zeroPt, res.no)
-        sps1 <- r.postMu1(zeroPt, res.mu1)
-        sps1.no <- r.postMu1(zeroPt, res.no.mu1)
-        
-        sps.trt <- mean(sps1) - mean(sps0)
-        sps.trt.no <- mean(sps1.no) - mean(sps0.no)
-        c(sps.trt, sps.trt.no)
-    }
-    sps.trts <- lapply(1:M, post.prob.trt)
+    trt.eff <- mean(mu1.efn(testPt, res.mu1)) -  mean(mu0.efn(testPt, res))
+    trt.eff.no <- mean(mu1.efn(testPt, res.no.mu1)) -  mean(mu0.efn(testPt, res.no))
+
+    msps0 <- r.postMu0(testPt, res, M)$trts
+    msps0.no <- r.postMu0(testPt, res.no, M)$trts
+    msps1 <- r.postMu1(testPt, res.mu1, M)$trts
+    msps1.no <- r.postMu1(testPt, res.no.mu1, M)$trts
+    sps.trts <- msps1 - msps0
+    sps.trts.no <- msps1.no - msps0.no
+
+    sps.trts <- cbind(sps.trts, sps.trts.no)
+
     
     # print(res$tau2s)
     rv <- list(mtrt=c(trt.eff, trt.eff.no), sps.trts=sps.trts, data=data, data.no=data.no, res=res, Rs=Rs)
@@ -144,13 +166,14 @@ phi0 = phi1 = 2
 N <- 150 # total sample size
 # parameters
 lam <- 20
-hs <- rep(2.1, 4)
-x.tps <- c(2, 2, "c", "c")
+hs <- rep(1.1, 4)
+#x.tps <- c(2, 2, "c", "c")
 x.tps <- c(2, 2, 2, 2)
+idx.tps <- paste0(x.tps, collapse="")
 p <- length(x.tps)
 
 #H <- diag(rep(1, p)/2)
-H <- diag(rep(0.1, p))
+H <- diag(rep(0.5, p))
 
 # initial dataset
 n0 <- 20
@@ -159,12 +182,10 @@ n0 <- 20
 # to calculate the prob
 M <- 1000
 
-
-nSimu <- 1000
-for (N in c(30, 60, 90, 120, 150)){
+nSimu <- 1500
+for (b in c(0, 1, 2, 3, 4)){
         paras <- list(invgam2=invgam2, b=b, phi0=phi0, phi1=phi1, N=N, lam=lam, hs=hs, x.tps=x.tps, H=H, M=M, xis=xis)
-        post.res <- mclapply(1:nSimu, fun.test, mc.cores=40)
-        sv.name <- paste0("./results/Simplex-Linear-AllBinary-diff-0", "-b-", b, "-N-", N, "-lam-", lam, "-phi0-", phi0, "-invgam2-", invgam2, "-nSimu-", nSimu, ".RData")
-        #sv.name <- paste0("./results/Simplex-Linear-diff-Sub10", "-b-", b, "-N-", N, "-lam-", lam, "-phi0-", phi0, "-invgam2-", invgam2, "-nSimu-", nSimu, ".RData")
+        post.res <- mclapply(1:nSimu, fun.test, mc.cores=20)
+        sv.name <- paste0("./results/Linear", "-b-", b, "-N-", N, "-lam-", lam, "-phi0-", phi0, "-invgam2-", invgam2, "-H-", vec2code(diag(H), 100), "-h-", vec2code(hs, 100), "-tps-", idx.tps, "-xis-", vec2code(xis, 10), "-nSimu-", nSimu, ".RData")
         save(post.res, paras, file=sv.name)
 }

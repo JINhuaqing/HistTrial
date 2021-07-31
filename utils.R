@@ -730,20 +730,24 @@ post.mean.mu1.fn <- function(cxs, res){
 }
 
 # sampling from posterior distribution of mu0
-r.postMu0 <- function(cxs, res){
+r.postMu0 <- function(cxs, res, M){
+    # M: num of repitions
   ms <- post.mean.mu0.fn(cxs, res)
   vs <- post.var.mu0.fn(cxs, res)
   nSps <- length(ms)
-  sps <- rnorm(nSps, ms, sqrt(vs))
-  sps
+  spss <- lapply(1:M, function(i)rnorm(nSps, ms, sqrt(vs)))
+  trts <- colMeans(do.call(cbind, spss))
+  list(spss=spss, trts=trts)
 }
 
 # sampling from posterior distribution of mu1
-r.postMu1 <- function(cxs, res){
+r.postMu1 <- function(cxs, res, M){
+    # M: num of repitions
   ms <- post.mean.mu1.fn(cxs, res)
   vs <- post.var.mu1.fn(cxs, res)
   nSps <- length(ms)
-  sps <- rnorm(nSps, ms, sqrt(vs))
-  sps
+  spss <- lapply(1:M, function(i)rnorm(nSps, ms, sqrt(vs)))
+  trts <- colMeans(do.call(cbind, spss))
+  list(spss=spss, trts=trts)
 }
 
