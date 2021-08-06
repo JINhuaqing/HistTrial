@@ -171,11 +171,14 @@ MKF <- function(x, Xs, H){
   xmat <- matrix(rep(x, n), nrow=n, byrow=TRUE)
   difX <- xmat - Xs
   vs <- dmvnorm(difX, sigma=H)
+  #nc <- dmvnorm(rep(0, p), sigma=H) #K(0)
+  #ncVec <- rep(nc, n)
+  #vs/ncVec
   vs
 }
 
 
-# kernel function to evaluate multiple points at one time
+# kernel function to evaluate multiple points at one time 
 mMKF <- function(cxs, Xs, H){
   # args:
   #   cxs: current x, m x p 
@@ -189,6 +192,9 @@ mMKF <- function(cxs, Xs, H){
     m <- dim(cxs)[1]
     p <- dim(Xs)[2]
     n <- dim(Xs)[1]
+    #nc <- dmvnorm(rep(0, p), sigma=H) #K(0)
+    #ncMat <- matrix(rep(nc, n*m), ncol=m)
+
     cxArr <- array(rep(cxs, n), dim = c(m, p, n))
     XsArr <- replicate(m, Xs, simplify = "array")
     XsArr <- aperm(XsArr, c(3, 2, 1))
@@ -197,6 +203,7 @@ mMKF <- function(cxs, Xs, H){
     difXmat <- matrix(difXArr, ncol=p)
     vs.vec <- dmvnorm(difXmat, sigma=H)
     vs <- matrix(vs.vec, ncol=m)
+  #  vs <- vs/ncMat
   }
   
   return(vs)
@@ -484,9 +491,9 @@ post.var.mu0.fn <- function(cxs, res){
   
   mks <- mMKF(xs, Xs, res$H)
   ws.sum <- colSums(mks)
-  ws.sum.mat <- matrix(rep(ws.sum, dim(Xs)[1]), ncol=m, byrow=TRUE)
-  norm.mks <- mks/ws.sum.mat
-  rv <- colSums(sZsMat*norm.mks*(1/res$phi0/res$phi0+tau2Mat))
+  #ws.sum.mat <- matrix(rep(ws.sum, dim(Xs)[1]), ncol=m, byrow=TRUE)
+  #norm.mks <- mks/ws.sum.mat
+  rv <- colSums(sZsMat*mks*(1/res$phi0/res$phi0+tau2Mat))
   
   if (is.null(dim(cxs))){
       rv <- rv[1]
@@ -518,11 +525,10 @@ post.mean.mu0.fn <- function(cxs, res){
   
   mks <- mMKF(xs, Xs, res$H)
   ws.sum <- colSums(mks)
-  ws.sum.mat <- matrix(rep(ws.sum, dim(Xs)[1]), ncol=m, byrow=TRUE)
-  norm.mks <- mks/ws.sum.mat
-  den <- colSums(sZsMat*norm.mks*(1/res$phi0/res$phi0+tau2Mat))
-  
-  num <- colSums(sZsMat*norm.mks*(YMat/res$phi0/res$phi0+tau2Mat*theta0Mat))
+  #ws.sum.mat <- matrix(rep(ws.sum, dim(Xs)[1]), ncol=m, byrow=TRUE)
+  #norm.mks <- mks/ws.sum.mat
+  den <- colSums(sZsMat*mks*(1/res$phi0/res$phi0+tau2Mat))
+  num <- colSums(sZsMat*mks*(YMat/res$phi0/res$phi0+tau2Mat*theta0Mat))
   rv <- num/den
   
   if (is.null(dim(cxs))){
@@ -683,9 +689,9 @@ post.var.mu1.fn <- function(cxs, res){
   
   mks <- mMKF(xs, Xs, res$H)
   ws.sum <- colSums(mks)
-  ws.sum.mat <- matrix(rep(ws.sum, dim(Xs)[1]), ncol=m, byrow=TRUE)
-  norm.mks <- mks/ws.sum.mat
-  rv <- colSums(ZsMat*norm.mks*(1/res$phi1/res$phi1+res$invsigma2))
+  #ws.sum.mat <- matrix(rep(ws.sum, dim(Xs)[1]), ncol=m, byrow=TRUE)
+  #norm.mks <- mks/ws.sum.mat
+  rv <- colSums(ZsMat*mks*(1/res$phi1/res$phi1+res$invsigma2))
   
   if (is.null(dim(cxs))){
       rv <- rv[1]
@@ -716,10 +722,10 @@ post.mean.mu1.fn <- function(cxs, res){
   
   mks <- mMKF(xs, Xs, res$H)
   ws.sum <- colSums(mks)
-  ws.sum.mat <- matrix(rep(ws.sum, dim(Xs)[1]), ncol=m, byrow=TRUE)
-  norm.mks <- mks/ws.sum.mat
-  den <- colSums(ZsMat*norm.mks*(1/res$phi1/res$phi1+res$invsigma2))
-  num <- colSums(ZsMat*norm.mks*(YsMat/res$phi1/res$phi1+theta1Mat*res$invsigma2))
+  #ws.sum.mat <- matrix(rep(ws.sum, dim(Xs)[1]), ncol=m, byrow=TRUE)
+  #norm.mks <- mks/ws.sum.mat
+  den <- colSums(ZsMat*mks*(1/res$phi1/res$phi1+res$invsigma2))
+  num <- colSums(ZsMat*mks*(YsMat/res$phi1/res$phi1+theta1Mat*res$invsigma2))
   rv <- num/den
   
   if (is.null(dim(cxs))){

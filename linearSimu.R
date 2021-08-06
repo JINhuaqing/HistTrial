@@ -158,14 +158,14 @@ betass <- list(
 #             para4=c(2, 0, -1, 4, -2) )
 #
 # sd of random error on alpha
-xis <- c(0, 0, 0, 0)
+xis <- c(0, 2, 2, 0)
 invgam2 <- 1
 
 b <- 4
 phi0 = phi1 = 2
 N <- 150 # total sample size
 # parameters
-lam <- 20
+lam <- 1000000 # no penalty
 hs <- rep(1.1, 4)
 #x.tps <- c(2, 2, "c", "c")
 x.tps <- c(2, 2, 2, 2)
@@ -173,7 +173,7 @@ idx.tps <- paste0(x.tps, collapse="")
 p <- length(x.tps)
 
 #H <- diag(rep(1, p)/2)
-H <- diag(rep(0.5, p))
+H <- diag(rep(0.05, p))
 
 # initial dataset
 n0 <- 20
@@ -183,9 +183,13 @@ n0 <- 20
 M <- 1000
 
 nSimu <- 1500
-for (b in c(0, 1, 2, 3, 4)){
-        paras <- list(invgam2=invgam2, b=b, phi0=phi0, phi1=phi1, N=N, lam=lam, hs=hs, x.tps=x.tps, H=H, M=M, xis=xis)
-        post.res <- mclapply(1:nSimu, fun.test, mc.cores=20)
-        sv.name <- paste0("./results/Linear", "-b-", b, "-N-", N, "-lam-", lam, "-phi0-", phi0, "-invgam2-", invgam2, "-H-", vec2code(diag(H), 100), "-h-", vec2code(hs, 100), "-tps-", idx.tps, "-xis-", vec2code(xis, 10), "-nSimu-", nSimu, ".RData")
-        save(post.res, paras, file=sv.name)
-}
+#for (lam in c(30, 50, 70)) {
+#for (invgam2 in c(0.5, 0.7, 1)){
+    for (b in c(0, 0.5, 1, 2, 3, 4)){
+            paras <- list(invgam2=invgam2, b=b, phi0=phi0, phi1=phi1, N=N, lam=lam, hs=hs, x.tps=x.tps, H=H, M=M, xis=xis)
+            post.res <- mclapply(1:nSimu, fun.test, mc.cores=20)
+            sv.name <- paste0("./results/Linear", "-b-", b, "-N-", N, "-lam-", lam, "-phi0-", phi0, "-invgam2-", invgam2, "-H-", vec2code(diag(H), 100), "-h-", vec2code(hs, 100), "-tps-", idx.tps, "-xis-", vec2code(xis, 10), "-nSimu-", nSimu, ".RData")
+            save(post.res, paras, file=sv.name)
+    }
+#}
+#}
