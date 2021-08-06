@@ -382,7 +382,8 @@ optTau <- function(x, data, Mu0s, lam, Theta0s, H, invgam2=0){
     den <- sum(sZs * ks * (Mu0s-Theta0s)**2) + invgam2
     tau2.td <- num/den
     
-    tau2 <- euclidean_proj_l1ball(tau2.td, lam)
+    tau2 <- softH(tau2.td, lam)
+    #tau2 <- euclidean_proj_l1ball(tau2.td, lam)
     return(tau2)
 }
 
@@ -415,8 +416,8 @@ mOptTau <- function(cxs, data, Mu0s, lam, Theta0s, H, invgam2=0){
         tau2.td <- num/den # m
         
         m <- length(tau2.td)
-        tau2 <-  euclidean_proj_l1ball(tau2.td, lam*log(m))
-        #tau2 <-  euclidean_proj_l1ball(tau2.td, lam*sqrt(log(m)/m))
+        tau2 <-  softH(tau2.td, lam)
+        #tau2 <-  euclidean_proj_l1ball(tau2.td, lam*log(m))
     }
     return(tau2)
 }
@@ -757,3 +758,18 @@ r.postMu1 <- function(cxs, res, M){
   list(spss=spss, trts=trts)
 }
 
+
+
+# Select the lambda parameter for soft-thresholding or truncate
+lam.sel.fn <- function(data, H, invgam2, lam.q=0.05){
+    # args:
+    #    lam.q: the quantile to select a suitable lambda
+    p <- dim(data)[2] - 2
+    Xs.mat <- as.matrix(data[, 3:(p+2)])
+    res.hist.true <- mu0.no.est.fn(data, H)
+    Theta0s.true <- mu0.efn(Xs.mat, res.hist.true)
+    res.lam.true <- mu0.info.est.fn(Theta0s.true, data, H, lam=0, invgam2=invgam2)
+    lam.sel <- quantile(res.lam.true$tau2s, lam.q)
+    return(lam.sel)
+    
+}

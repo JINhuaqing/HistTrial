@@ -81,6 +81,7 @@ fun.test <- function(i){
         # H <- diag(c(bw.nrd(data$X1), bw.nrd(data$X2), bw.nrd(data$X3), bw.nrd(data$X4)))
         alpMat <- sub.Paras.fn(Xs, alpss)
         Theta0s <- curMean.fn(Xs, Zs, alpMat, b=0)
+        lam <- lam.sel.fn(data, H=H, invgam2=invgam2, lam.q=lam.q)
         res <- mu0.info.est.fn(Theta0s, data, H, lam, invgam2=invgam2)
         res.ref <- mu0.info.est.fn(Theta0s, data, H, lam, phi0=res$phi0, invgam2=invgam2, is.ref=TRUE)
         
@@ -116,6 +117,7 @@ fun.test <- function(i){
     
     alpMat <- sub.Paras.fn(Xs, alpss)
     Theta0s <- curMean.fn(Xs, Zs, alpMat, b=0)
+    lam <- lam.sel.fn(data, H=H, invgam2=invgam2, lam.q=lam.q)
     res <- mu0.info.est.fn(Theta0s, data, H, lam, invgam2=invgam2)
     res.no <- mu0.no.est.fn(data.no, H)
     
@@ -165,7 +167,7 @@ b <- 4
 phi0 = phi1 = 2
 N <- 150 # total sample size
 # parameters
-lam <- 1000000 # no penalty
+lam.q <- 0.05 # no penalty
 hs <- rep(1.1, 4)
 #x.tps <- c(2, 2, "c", "c")
 x.tps <- c(2, 2, 2, 2)
@@ -183,13 +185,11 @@ n0 <- 20
 M <- 1000
 
 nSimu <- 1500
-#for (lam in c(30, 50, 70)) {
 #for (invgam2 in c(0.5, 0.7, 1)){
     for (b in c(0, 0.5, 1, 2, 3, 4)){
-            paras <- list(invgam2=invgam2, b=b, phi0=phi0, phi1=phi1, N=N, lam=lam, hs=hs, x.tps=x.tps, H=H, M=M, xis=xis)
+            paras <- list(invgam2=invgam2, b=b, phi0=phi0, phi1=phi1, N=N, lam.q=lam.q, hs=hs, x.tps=x.tps, H=H, M=M, xis=xis)
             post.res <- mclapply(1:nSimu, fun.test, mc.cores=20)
-            sv.name <- paste0("./results/Linear", "-b-", b, "-N-", N, "-lam-", lam, "-phi0-", phi0, "-invgam2-", invgam2, "-H-", vec2code(diag(H), 100), "-h-", vec2code(hs, 100), "-tps-", idx.tps, "-xis-", vec2code(xis, 10), "-nSimu-", nSimu, ".RData")
+            sv.name <- paste0("./results/Linear", "-b-", b, "-N-", N, "-lam.q-", lam.q, "-phi0-", phi0, "-invgam2-", invgam2, "-H-", vec2code(diag(H), 100), "-h-", vec2code(hs, 100), "-tps-", idx.tps, "-xis-", vec2code(xis, 10), "-nSimu-", nSimu, ".RData")
             save(post.res, paras, file=sv.name)
     }
-#}
 #}
