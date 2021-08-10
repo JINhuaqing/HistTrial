@@ -379,7 +379,8 @@ optTau <- function(x, data, Mu0s, lam, Theta0s, H, invgam2=0){
     ks <- MKF(x, Xs, H=H)
     
     num <- sum(sZs * ks)
-    den <- sum(sZs * ks * (Mu0s-Theta0s)**2) + invgam2
+    den <- sum(sZs * ks * ((Mu0s-Theta0s)**2 + invgam2))
+    #den <- sum(sZs * ks * (Mu0s-Theta0s)**2) + invgam2
     tau2.td <- num/den
     
     tau2 <- softH(tau2.td, lam)
@@ -412,7 +413,8 @@ mOptTau <- function(cxs, data, Mu0s, lam, Theta0s, H, invgam2=0){
         
         
         num <- colSums(sZsMat * mks)
-        den <- colSums(sZsMat * mks * sseMat)  + invgam2
+        den <- colSums(sZsMat * mks * (sseMat + invgam2))
+        #den <- colSums(sZsMat * mks * sseMat)  + invgam2
         tau2.td <- num/den # m
         
         m <- length(tau2.td)
