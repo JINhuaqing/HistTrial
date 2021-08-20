@@ -218,6 +218,14 @@ softH <- function(xs, lam){
     return(rvs)
 }
 
+# truncate function
+trunFn <- function(xs, lam.tru){
+    rvs <- xs
+    rvs[abs(xs) <= lam.tru] = 0
+    return(rvs)
+
+}
+
 # univariate kernel fn with K(0) = 1
 normKfn <- function(x, h=1, kt="epanechnikov"){
   #args:
@@ -364,12 +372,13 @@ mOptMu0 <- function(cxs, data, Tau2s, phi0, Theta0s, H){
 }
 
 # optimize tau2(X) given [mu0(X1), ..., mu0(Xn)]
-optTau <- function(x, data, Mu0s, lam, Theta0s, H, invgam2=0){
+optTau <- function(x, data, Mu0s, lam, Theta0s, H, invgam2=0, lam.tru=0){
   #args
   #    x: current data point, 1xp
   #    data: the datase, n x (2+p): [Y, Z, Xs]
   #    Mu0s: the [mu0(X1), ..., mu0(Xn)], 1 x n
   #    lam: penalty parameter
+  #    lam.tru: threshold to truncate the small value of Tau
   #    Theta0s: the [theta0(X1), ..., theta0(Xn)], 1 x n
   #    H: cov mat, p x p
   #    invgam2: 1/invgam2 is the variance parameter of HN prior
@@ -379,27 +388,29 @@ optTau <- function(x, data, Mu0s, lam, Theta0s, H, invgam2=0){
     ks <- MKF(x, Xs, H=H)
     
     num <- sum(sZs * ks)
-    den <- sum(sZs * ks * ((Mu0s-Theta0s)**2 + invgam2))
-    #den <- sum(sZs * ks * (Mu0s-Theta0s)**2) + invgam2
+    #den <- sum(sZs * ks * ((Mu0s-Theta0s)**2 + invgam2))
+    den <- sum(sZs * ks * (Mu0s-Theta0s)**2) + invgam2
     tau2.td <- num/den
     
-    tau2 <- softH(tau2.td, lam)
-    #tau2 <- euclidean_proj_l1ball(tau2.td, lam)
-    return(tau2)
+    #tau2 <- softH(tau2.td, lam)
+    tau2 <- trunFn(tau2.td, lam.tru)
+    tau2 <- euclidean_proj_l1ball(tau2, lam)
+    return(list(tau2=tau2, tau2.td=tau2.td))
 }
 
-mOptTau <- function(cxs, data, Mu0s, lam, Theta0s, H, invgam2=0){
+mOptTau <- function(cxs, data, Mu0s, lam, Theta0s, H, invgam2=0, lam.tru=0){
   
   #args
   #    cxs: current data point, mxp
   #    data: the datase, n x (2+p): [Y, Z, Xs]
   #    Mu0s: the [mu0(X1), ..., mu0(Xn)], 1 x n
   #    lam: penalty parameter
+  #    lam.tru: threshold to truncate the small value of Tau
   #    Theta0s: the [theta0(X1), ..., theta0(Xn)], 1 x n
   #    H: cov mat, p x p
   #    invgam2: 1/invgam2 is the variance parameter of HN prior
     if (is.null(dim(cxs))){
-        tau2 <- optTau(cxs, data, Mu0s, lam, Theta0s, H, invgam2)
+        tau2 <- optTau(cxs, data, Mu0s, lam, Theta0s, H, invgam2, lam.tru)
     }else{
         p <-dim(cxs)[2]
         m <-dim(cxs)[1]
@@ -413,15 +424,17 @@ mOptTau <- function(cxs, data, Mu0s, lam, Theta0s, H, invgam2=0){
         
         
         num <- colSums(sZsMat * mks)
-        den <- colSums(sZsMat * mks * (sseMat + invgam2))
-        #den <- colSums(sZsMat * mks * sseMat)  + invgam2
+        #den <- colSums(sZsMat * mks * (sseMat + invgam2))
+        den <- colSums(sZsMat * mks * sseMat)  + invgam2
         tau2.td <- num/den # m
         
         m <- length(tau2.td)
-        tau2 <-  softH(tau2.td, lam)
-        #tau2 <-  euclidean_proj_l1ball(tau2.td, lam*log(m))
+        #tau2 <-  softH(tau2.td, lam)
+        tau2 <-  trunFn(tau2.td, lam.tru)
+        tau2 <-  euclidean_proj_l1ball(tau2, lam*log(m))
+        #print(c(sum(tau2.td), sum(tau2)))
     }
-    return(tau2)
+    return(list(tau2=tau2, tau2.td=tau2.td))
 }
 
 
@@ -470,7 +483,7 @@ mu1.efn <- function(xs, res){
 
 # function to evaluate estimated tau2(X)
 tau2.efn <- function(xs, res){
-    rv <- mOptTau(xs, res$data, res$mu0s, res$lam, res$theta0s, res$H, res$invgam2)
+    rv <- mOptTau(xs, res$data, res$mu0s, res$lam, res$theta0s, res$H, res$invgam2, res$lam.tru)$tau2
     rv
 }
 
@@ -542,7 +555,7 @@ post.mean.mu0.fn <- function(cxs, res){
 }
 
 # function for estimate mu0s, tau2s, and phi0 under info and reference model
-mu0.info.est.fn <- function(Theta0s, data, H, lam, phi0=NA, invgam2=0, is.ref=FALSE, maxit=100){
+mu0.info.est.fn <- function(Theta0s, data, H, lam, phi0=NA, invgam2=0, is.ref=FALSE, maxit=100, lam.tru=0){
   #args:
   #  Theta0s: Estimated ys based on historical data
   #  data: the dataset, n x (2+p): [Y, Z, Xs]
@@ -569,8 +582,9 @@ mu0.info.est.fn <- function(Theta0s, data, H, lam, phi0=NA, invgam2=0, is.ref=FA
             phi0 <- optPhi0(data, Mu0s)
             phi0.tk[i] <- phi0
             
-            Tau2s  <- mOptTau(as.matrix(Xs), data, Mu0s, lam, Theta0s, H, invgam2)
-            Tau2s.tk[[i]] <- Tau2s
+            Tau2s.res  <- mOptTau(as.matrix(Xs), data, Mu0s, lam, Theta0s, H, invgam2, lam.tru)
+            Tau2s <- Tau2s.res$tau2
+            Tau2s.tk[[i]] <- Tau2s.res$tau2
             
             if (i > 1){
                 err.tau2 <- mean((Tau2s.tk[[i]] - Tau2s.tk[[i-1]])**2)
@@ -587,11 +601,11 @@ mu0.info.est.fn <- function(Theta0s, data, H, lam, phi0=NA, invgam2=0, is.ref=FA
 
     if (!is.ref){
         res <- list(tau2s=Tau2s, mu0s=Mu0s, phi0=phi0, mu0tk=Mu0s.tk, tau2stk=Tau2s.tk,
-                theta0s=Theta0s, H=H, data=data, lam=lam, phi0.tk=phi0.tk, invgam2=invgam2)
+                theta0s=Theta0s, H=H, data=data, lam=lam, phi0.tk=phi0.tk, invgam2=invgam2, lam.tru=lam.tru, tau2.tds=Tau2s.res$tau2.td)
     }else{
         Tau20s <- rep(0, n)
         Mu0s.no <- mOptMu0(as.matrix(Xs), data, Tau20s, phi0, Theta0s, H)
-        res <- list(tau2s=Tau20s, mu0s=Mu0s.no, phi0=phi0, theta0s=Theta0s, H=H, data=data, lam=lam, invgam2=invgam2)
+        res <- list(tau2s=Tau20s, mu0s=Mu0s.no, phi0=phi0, theta0s=Theta0s, H=H, data=data, lam=lam, invgam2=invgam2, lam.tru=lam.tru, tau2.tds=Tau20s)
     }
     
     res
@@ -763,15 +777,15 @@ r.postMu1 <- function(cxs, res, M){
 
 
 # Select the lambda parameter for soft-thresholding or truncate
-lam.sel.fn <- function(data, H, invgam2, lam.q=0.05){
+lam.sel.fn <- function(data, H, invgam2, lam, lam.q=0.05){
     # args:
     #    lam.q: the quantile to select a suitable lambda
     p <- dim(data)[2] - 2
     Xs.mat <- as.matrix(data[, 3:(p+2)])
     res.hist.true <- mu0.no.est.fn(data, H)
     Theta0s.true <- mu0.efn(Xs.mat, res.hist.true)
-    res.lam.true <- mu0.info.est.fn(Theta0s.true, data, H, lam=0, invgam2=invgam2)
-    lam.sel <- quantile(res.lam.true$tau2s, lam.q)
+    res.lam.true <- mu0.info.est.fn(Theta0s.true, data, H, lam=lam, invgam2=invgam2, lam.tru=0)
+    lam.sel <- quantile(res.lam.true$tau2.tds, lam.q)
     return(lam.sel)
     
 }

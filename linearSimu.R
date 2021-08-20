@@ -47,10 +47,10 @@ CI.fn <- function(errs){
 }
 
 fun.test <- function(i){
-    #set.seed(seeds[i])
+    set.seed(seeds[i])
     alpss <- betass
     for (jj in 1:4){
-        alpss[[jj]] <- betass[[jj]] + rnorm(p, sd=xis[jj])
+        alpss[[jj]] <- betass[[jj]] + rnorm(p+1, sd=xis[jj])
     }
     print(i)
     Xs <- gen.Data.Xs(n0, x.tps)
@@ -74,15 +74,18 @@ fun.test <- function(i){
     data.no <- as.data.frame(data.no)
     colnames(data.no)[1:2] <- c("Y", "Z")
     Rs <- rep(1, N) # record R 
+    lam.trus <- rep(-1, N+1) # record lambda
     
     for (j in (n0+1):N){
+        #print(j)
         cx <- unlist(gen.Data.Xs(1, x.tps))
         
         # H <- diag(c(bw.nrd(data$X1), bw.nrd(data$X2), bw.nrd(data$X3), bw.nrd(data$X4)))
         alpMat <- sub.Paras.fn(Xs, alpss)
         Theta0s <- curMean.fn(Xs, Zs, alpMat, b=0)
-        lam <- lam.sel.fn(data, H=H, invgam2=invgam2, lam.q=lam.q)
-        res <- mu0.info.est.fn(Theta0s, data, H, lam, invgam2=invgam2)
+        lam.tru <- lam.sel.fn(data, H=H, invgam2=invgam2, lam=lam, lam.q=lam.q)
+        lam.trus[j] <- lam.tru
+        res <- mu0.info.est.fn(Theta0s, data, H, lam, invgam2=invgam2, lam.tru=lam.tru)
         res.ref <- mu0.info.est.fn(Theta0s, data, H, lam, phi0=res$phi0, invgam2=invgam2, is.ref=TRUE)
         
         var.info <- post.var.mu0.fn(cx, res)
@@ -117,8 +120,9 @@ fun.test <- function(i){
     
     alpMat <- sub.Paras.fn(Xs, alpss)
     Theta0s <- curMean.fn(Xs, Zs, alpMat, b=0)
-    lam <- lam.sel.fn(data, H=H, invgam2=invgam2, lam.q=lam.q)
-    res <- mu0.info.est.fn(Theta0s, data, H, lam, invgam2=invgam2)
+    lam.tru <- lam.sel.fn(data, H=H, invgam2=invgam2, lam=lam, lam.q=lam.q)
+    lam.trus[N+1] <- lam.tru
+    res <- mu0.info.est.fn(Theta0s, data, H, lam, invgam2=invgam2, lam.tru=lam.tru)
     res.no <- mu0.no.est.fn(data.no, H)
     
     res.mu1 <- mu1.no.est.fn(data, H)
@@ -128,6 +132,8 @@ fun.test <- function(i){
 
     trt.eff <- mean(mu1.efn(testPt, res.mu1)) -  mean(mu0.efn(testPt, res))
     trt.eff.no <- mean(mu1.efn(testPt, res.no.mu1)) -  mean(mu0.efn(testPt, res.no))
+    #print(trt.eff.no)
+    #print(mean(data.no$Y))
 
     msps0 <- r.postMu0(testPt, res, M)$trts
     msps0.no <- r.postMu0(testPt, res.no, M)$trts
@@ -140,7 +146,7 @@ fun.test <- function(i){
 
     
     # print(res$tau2s)
-    rv <- list(mtrt=c(trt.eff, trt.eff.no), sps.trts=sps.trts, data=data, data.no=data.no, res=res, Rs=Rs)
+    rv <- list(mtrt=c(trt.eff, trt.eff.no), sps.trts=sps.trts, data=data, data.no=data.no, res=res, Rs=Rs, lam.trus=lam.trus)
     rv
 }
 
@@ -160,14 +166,19 @@ betass <- list(
 #             para4=c(2, 0, -1, 4, -2) )
 #
 # sd of random error on alpha
-xis <- c(0, 2, 2, 0)
-invgam2 <- 1
+xis <- c(3, 3, 3, 3)
+xiss <- list()
+xiss[[1]] <- c(0, 0, 0, 0)
+xiss[[2]] <- c(0, 3, 3, 0)
+xiss[[3]] <- c(3, 3, 3, 3)
+invgam2 <- 10
 
 b <- 4
-phi0 = phi1 = 2
+phi0 = phi1 = 3
 N <- 150 # total sample size
 # parameters
-lam.q <- 0.05 # no penalty
+lam.q <- 0.10 
+lam <- 30
 hs <- rep(1.1, 4)
 #x.tps <- c(2, 2, "c", "c")
 x.tps <- c(2, 2, 2, 2)
@@ -185,11 +196,13 @@ n0 <- 20
 M <- 1000
 
 nSimu <- 1500
-#for (invgam2 in c(0.5, 0.7, 1)){
-    for (b in c(0, 0.5, 1, 2, 3, 4)){
-            paras <- list(invgam2=invgam2, b=b, phi0=phi0, phi1=phi1, N=N, lam.q=lam.q, hs=hs, x.tps=x.tps, H=H, M=M, xis=xis)
-            post.res <- mclapply(1:nSimu, fun.test, mc.cores=20)
-            sv.name <- paste0("./results/Linear", "-b-", b, "-N-", N, "-lam.q-", lam.q, "-phi0-", phi0, "-invgam2-", invgam2, "-H-", vec2code(diag(H), 100), "-h-", vec2code(hs, 100), "-tps-", idx.tps, "-xis-", vec2code(xis, 10), "-nSimu-", nSimu, ".RData")
+    for (b in c(0, 0.5, 1:3)) {
+    for (xis.idx in 1:3) {
+            xis <- xiss[[xis.idx]]
+            phi1 = phi0
+            paras <- list(invgam2=invgam2, b=b, phi0=phi0, phi1=phi1, N=N, lam.q=lam.q, hs=hs, x.tps=x.tps, H=H, M=M, xis=xis, lam=lam)
+            post.res <- mclapply(1:nSimu, fun.test, mc.cores=1)
+            sv.name <- paste0("./results/LinearSw", "-b-", b, "-N-", N, "-lam-", lam, "-lamq-", 100*lam.q, "-phi0-", phi0, "-invgam2-", invgam2, "-H-", vec2code(diag(H), 100), "-h-", vec2code(hs, 100), "-tps-", idx.tps, "-xis-", vec2code(xis, 10), "-nSimu-", nSimu, ".RData")
             save(post.res, paras, file=sv.name)
     }
-#}
+    }
