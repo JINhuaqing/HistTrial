@@ -760,7 +760,7 @@ r.postMu0 <- function(cxs, res, M){
   nSps <- length(ms)
   spss <- lapply(1:M, function(i)rnorm(nSps, ms, sqrt(vs)))
   trts <- colMeans(do.call(cbind, spss))
-  list(spss=spss, trts=trts)
+  list(spss=spss, trts=trts, ms=ms, vs=vs)
 }
 
 # sampling from posterior distribution of mu1
@@ -771,7 +771,7 @@ r.postMu1 <- function(cxs, res, M){
   nSps <- length(ms)
   spss <- lapply(1:M, function(i)rnorm(nSps, ms, sqrt(vs)))
   trts <- colMeans(do.call(cbind, spss))
-  list(spss=spss, trts=trts)
+  list(spss=spss, trts=trts, ms=ms, vs=vs)
 }
 
 
