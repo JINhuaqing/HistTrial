@@ -47,10 +47,11 @@ CI.fn <- function(errs){
 }
 
 fun.test <- function(i){
-    set.seed(seeds[i])
+    #set.seed(seeds[i])
     alpss <- betass
     for (jj in 1:4){
-        alpss[[jj]] <- betass[[jj]] + rnorm(p+1, sd=xis[jj])
+        alpss[[jj]] <- betass[[jj]] + rnorm(p+1, mean=xis[jj], sd=ifelse(xis[jj]==0, 0, 1))
+        #alpss[[jj]] <- betass[[jj]] + rnorm(p+1, sd=xis[jj])
     }
     print(i)
     Xs <- gen.Data.Xs(n0, x.tps)
@@ -166,14 +167,16 @@ betass <- list(
 #             para4=c(2, 0, -1, 4, -2) )
 #
 # sd of random error on alpha
-xis <- c(3, 3, 3, 3)
+xi.vs <- c(seq(0, 1, 0.2), 1.3, 1.6, 1.9, 2, 3, 5, 7, 9)
+xis <- c(0, 3, 3, 0)
 xiss <- list()
-xiss[[1]] <- c(0, 0, 0, 0)
-xiss[[2]] <- c(0, 3, 3, 0)
-xiss[[3]] <- c(3, 3, 3, 3)
-invgam2 <- 10
+for (ii in 1:length(xi.vs)){
+    xiss[[ii]] <- c(0, 0, 0, 0) + xi.vs[ii]
+}
 
-b <- 4
+invgam2 <- 50
+
+b <- 2
 phi0 = phi1 = 3
 N <- 150 # total sample size
 # parameters
@@ -195,14 +198,16 @@ n0 <- 20
 # to calculate the prob
 M <- 1000
 
-nSimu <- 1500
-    for (b in c(0, 0.5, 1:3)) {
-    for (xis.idx in 1:3) {
-            xis <- xiss[[xis.idx]]
-            phi1 = phi0
-            paras <- list(invgam2=invgam2, b=b, phi0=phi0, phi1=phi1, N=N, lam.q=lam.q, hs=hs, x.tps=x.tps, H=H, M=M, xis=xis, lam=lam)
-            post.res <- mclapply(1:nSimu, fun.test, mc.cores=1)
-            sv.name <- paste0("./results/LinearSw", "-b-", b, "-N-", N, "-lam-", lam, "-lamq-", 100*lam.q, "-phi0-", phi0, "-invgam2-", invgam2, "-H-", vec2code(diag(H), 100), "-h-", vec2code(hs, 100), "-tps-", idx.tps, "-xis-", vec2code(xis, 10), "-nSimu-", nSimu, ".RData")
-            save(post.res, paras, file=sv.name)
-    }
-    }
+nSimu <- 1000
+for (invgam2 in c(100)) {
+for (phi0 in c(3)){
+#for (xis.idx in 1:length(xiss)) {
+        #xis <- xiss[[xis.idx]]
+        phi1 = phi0
+        paras <- list(invgam2=invgam2, b=b, phi0=phi0, phi1=phi1, N=N, lam.q=lam.q, hs=hs, x.tps=x.tps, H=H, M=M, xis=xis, lam=lam)
+        post.res <- mclapply(1:nSimu, fun.test, mc.cores=20)
+        sv.name <- paste0("./results/LinearSwNewAlp", "-b-", b, "-N-", N, "-lam-", lam, "-lamq-", 100*lam.q, "-phi0-", phi0, "-invgam2-", invgam2, "-H-", vec2code(diag(H), 100), "-h-", vec2code(hs, 100), "-tps-", idx.tps, "-xis-", vec2code(xis, 10), "-nSimu-", nSimu, ".RData")
+        save(post.res, paras, file=sv.name)
+#}
+}
+}
