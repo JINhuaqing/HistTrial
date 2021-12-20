@@ -2,3 +2,4 @@
 *.RData
 plots/*
 tmp*
+*.rtf
