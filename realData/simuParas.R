@@ -1,44 +1,44 @@
-rm(list=ls())
-setwd("C:/Users/JINHU/Documents/ProjectCode/HistTrial/realData")
+#rm(list=ls())
+setwd("/home/huaqingj/MyResearch/HistTrial/")
+#setwd("C:/Users/JINHU/Documents/ProjectCode/HistTrial/realData")
 
-load("dat.merge.RData")
-
+load("./realData/dat.merge.Rdata")
 library(dplyr)
 
 ## 1. Data prepocessing
 # 1.1 remove the SOF study and only keep race ==1. 
 RCT.data <- filter(dat.merge, STUDY!="SOF" & race==1)
-summary(RCT.data)
-str(RCT.data)
+#summary(RCT.data)
+#str(RCT.data)
 RCT.data$STUDY <- droplevels(RCT.data$STUDY)
 RCT.data$race <- droplevels(RCT.data$race)
-str(RCT.data)
-summary(RCT.data)
+#str(RCT.data)
+#summary(RCT.data)
 
-group_by(RCT.data, STUDY) %>% 
-summarise(
-    isNA=sum(is.na(VFXINC_36)), 
-    isNoTNA=sum(!is.na(VFXINC_36))
-                                        )
-group_by(RCT.data, STUDY) %>% 
-summarise(
-    isNA=sum(is.na(VFXINC_24)), 
-    isNOTNA=sum(!is.na(VFXINC_24))
-                                        )
+# group_by(RCT.data, STUDY) %>% 
+# summarise(
+#     isNA=sum(is.na(VFXINC_36)), 
+#     isNoTNA=sum(!is.na(VFXINC_36))
+#                                         )
+# group_by(RCT.data, STUDY) %>% 
+# summarise(
+#     isNA=sum(is.na(VFXINC_24)), 
+#     isNOTNA=sum(!is.na(VFXINC_24))
+#                                         )
+# 
+# group_by(RCT.data, STUDY) %>% 
+# summarise(
+#     isNA=sum(is.na(dxhhp_24)), 
+#     isNOTNA=sum(!is.na(dxhhp_24))
+#                                         )
+# group_by(RCT.data, STUDY) %>% 
+# summarise(
+#     is0=sum(nfrxvert==0, na.rm = NA), 
+#     isNot0=sum(nfrxvert!=0, na.rm=NA))
 
-group_by(RCT.data, STUDY) %>% 
-summarise(
-    isNA=sum(is.na(dxhhp_24)), 
-    isNOTNA=sum(!is.na(dxhhp_24))
-                                        )
-group_by(RCT.data, STUDY) %>% 
-summarise(
-    is0=sum(nfrxvert==0, na.rm = NA), 
-    isNot0=sum(nfrxvert!=0, na.rm=NA))
 
-
-plot(RCT.data$dxhhp_24[!is.na(RCT.data$dxhhp_24)])
-plot(RCT.data$VFXINC_36[!is.na(RCT.data$VFXINC_36)])
+#plot(RCT.data$dxhhp_24[!is.na(RCT.data$dxhhp_24)])
+#plot(RCT.data$VFXINC_36[!is.na(RCT.data$VFXINC_36)])
 
 # so I use dxhhp_24 as a linear model
 # Treatment variable: TRTN (Z)
@@ -179,12 +179,18 @@ gen.Real.Xs <- function(n, fHats){
 # 4. Check the true Ys and estimated Ys
 
 sub.Paras.fn <- function(Xs, betass){
-    #args:
-    #   Xs: covariates, n x p 
-    idxs <- Xs[, 1] +  Xs[, 2]*2 + 1
-    betMat <- do.call(rbind, betass[idxs])
-    return(betMat)
+  #args:
+  #   Xs: covariates, n x p 
+  if (is.null(dim(Xs))){
     
+      idxs <- Xs[1] +  Xs[2]*2 + 1
+  }else{
+      idxs <- Xs[, 1] +  Xs[, 2]*2 + 1
+    
+  }
+  betMat <- do.call(rbind, betass[idxs])
+  return(betMat)
+  
 }
 
 curMean.fn <- function(Xs, Zs, betMat, b){
@@ -217,14 +223,14 @@ Ys.m <- curMean.fn(Xs, Zs, betMat, b)
 nerrs <- rnorm(ntest, sd=sd(fit.all$residuals))
 Ys <- Ys.m + nerrs
 
-# Two Densities is similar
-plot(density(data.Cur$Y[data.Cur$Z==0], na.rm=T), main="Control Group")
-lines(density(Ys[Zs==0], na.rm=T), col="red")
-legend("topright", legend=c("True data", "Generated data"), col=c("black", "red"), lty=c(1, 1))
-
-plot(density(data.Cur$Y[data.Cur$Z==1], na.rm=T), main="Treatment Group")
-lines(density(Ys[Zs==1], na.rm=T), col="red")
-legend("topright", legend=c("True data", "Generated data"), col=c("black", "red"), lty=c(1, 1))
+# # Two Densities is similar
+# plot(density(data.Cur$Y[data.Cur$Z==0], na.rm=T), main="Control Group")
+# lines(density(Ys[Zs==0], na.rm=T), col="red")
+# legend("topright", legend=c("True data", "Generated data"), col=c("black", "red"), lty=c(1, 1))
+# 
+# plot(density(data.Cur$Y[data.Cur$Z==1], na.rm=T), main="Treatment Group")
+# lines(density(Ys[Zs==1], na.rm=T), col="red")
+# legend("topright", legend=c("True data", "Generated data"), col=c("black", "red"), lty=c(1, 1))
 
 
 

@@ -1,3 +1,4 @@
+# this script is to run real data when N is changed
 #rm(list=ls())
 library(magrittr)
 library(dplyr)
@@ -63,6 +64,7 @@ CI.fn <- function(errs){
 }
 
 fun.real <- function(i){
+    rvs <- list()
     ts <- c()
     ts <- c(ts, Sys.time())
     #set.seed(seeds[i])
@@ -141,39 +143,35 @@ fun.real <- function(i){
         data.no <- as.data.frame(data.no)
         colnames(data.no)[1:2] <- c("Y", "Z")
         
+        if ((j%%10==0)&(j>100)){
+            alpMat <- sub.Paras.fn(Xs, alpss)
+            Theta0s <- curMean.fn(Xs, Zs, alpMat, b=0)
+            lam.tru <- lam.sel.fn(data, H=H, invgam2=invgam2, lam=lam, lam.q=lam.q)
+            res <- mu0.info.est.fn(Theta0s, data, H, lam, invgam2=invgam2, lam.tru=lam.tru)
+            res.no <- mu0.no.est.fn(data.no, H)
+            
+            res.mu1 <- mu1.no.est.fn(data, H)
+            res.no.mu1 <- mu1.no.est.fn(data.no, H)
+            testPt <- as.matrix(Xs)
+
+            trt.eff <- mean(mu1.efn(testPt, res.mu1)) -  mean(mu0.efn(testPt, res))
+            trt.eff.no <- mean(mu1.efn(testPt, res.no.mu1)) -  mean(mu0.efn(testPt, res.no))
+
+            msps0 <- r.postMu0(testPt, res, M)$trts
+            msps0.no <- r.postMu0(testPt, res.no, M)$trts
+            msps1 <- r.postMu1(testPt, res.mu1, M)$trts
+            msps1.no <- r.postMu1(testPt, res.no.mu1, M)$trts
+            sps.trts <- msps1 - msps0
+            sps.trts.no <- msps1.no - msps0.no
+
+            sps.trts <- cbind(sps.trts, sps.trts.no)
+
+            
+            rvs[[j]] <- list(mtrt=c(trt.eff, trt.eff.no), sps.trts=sps.trts, data=data, data.no=data.no, res=res, Rs=Rs, lam.trus=lam.trus,alpss=alpss, betass=betass)
+        }
         
     }
-    ts <- c(ts, Sys.time())
-    
-    alpMat <- sub.Paras.fn(Xs, alpss)
-    Theta0s <- curMean.fn(Xs, Zs, alpMat, b=0)
-    lam.tru <- lam.sel.fn(data, H=H, invgam2=invgam2, lam=lam, lam.q=lam.q)
-    lam.trus[N+1] <- lam.tru
-    res <- mu0.info.est.fn(Theta0s, data, H, lam, invgam2=invgam2, lam.tru=lam.tru)
-    res.no <- mu0.no.est.fn(data.no, H)
-    
-    res.mu1 <- mu1.no.est.fn(data, H)
-    res.no.mu1 <- mu1.no.est.fn(data.no, H)
-    #testPt <- matrix(rep(0, p), nrow=1)
-    testPt <- as.matrix(Xs)
-
-    trt.eff <- mean(mu1.efn(testPt, res.mu1)) -  mean(mu0.efn(testPt, res))
-    trt.eff.no <- mean(mu1.efn(testPt, res.no.mu1)) -  mean(mu0.efn(testPt, res.no))
-
-    msps0 <- r.postMu0(testPt, res, M)$trts
-    msps0.no <- r.postMu0(testPt, res.no, M)$trts
-    msps1 <- r.postMu1(testPt, res.mu1, M)$trts
-    msps1.no <- r.postMu1(testPt, res.no.mu1, M)$trts
-    sps.trts <- msps1 - msps0
-    sps.trts.no <- msps1.no - msps0.no
-
-    sps.trts <- cbind(sps.trts, sps.trts.no)
-
-    
-    ts <- c(ts, Sys.time())
-    print(diff(ts))
-    rv <- list(mtrt=c(trt.eff, trt.eff.no), sps.trts=sps.trts, data=data, data.no=data.no, res=res, Rs=Rs, lam.trus=lam.trus,alpss=alpss, betass=betass)
-    rv
+    rvs
 }
 
 #under H0
@@ -191,7 +189,7 @@ for (ii in 1:length(xi.vs)){
 invgam2 <- 0.33
 
 phi0 = phi1 = sd(fit.all$residuals)
-N <- 200 # total sample size
+N <- 300 # total sample size
 # parameters
 lam.q <- 0.15
 lam <- 200
@@ -208,9 +206,9 @@ n0 <- 20
 # to calculate the prob
 M <- 1000
 
-nSimu <- 100
+nSimu <- 1000
 for (xis in xiss){
-post.res <- mclapply(1:nSimu, fun.real, mc.cores=1)
+post.res <- mclapply(1:nSimu, fun.real, mc.cores=6)
 H <- diag(c(0.10, 0.10, 9.99, 9.99))
 sv.name <- paste0("./results/RealDataRSS", "-b-", format(b, scientific=T, digits=1), "-N-", N, "-lam-", lam, "-lamq-", 100*lam.q, "-phi0-", format(phi0, scientific=T, digits=1), "-invgam2-", invgam2, "-H-", vec2code(diag(round(H, 2)), 100), "-h-", vec2code(hs, 100), "-tps-", idx.tps, "-xis-", vec2code(xis, 10), "-nSimu-", nSimu, ".RData")
 paras <- list(invgam2=invgam2, b=b, phi0=phi0, phi1=phi1, N=N, lam.q=lam.q, hs=hs, x.tps=x.tps, H=H, M=M, xis=xis, lam=lam)
