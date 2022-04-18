@@ -1,6 +1,6 @@
 #rm(list=ls())
 setwd("/home/huaqingj/MyResearch/HistTrial/")
-#setwd("C:/Users/JINHU/Documents/ProjectCode/HistTrial/realData")
+setwd("C:/Users/JINHU/Documents/ProjectCode/HistTrial/")
 
 load("./realData/dat.merge.Rdata")
 library(dplyr)
@@ -45,18 +45,19 @@ RCT.data$race <- droplevels(RCT.data$race)
 # Covariates
 # 1. X1: dxhhp: continous
 # 2. X2: falls: 1 or 0
-# 3. nfrxvert: interger
-# 4. X3: frxvert: 1 or 0 
-# 5. X4: menyrs: decimal
+# 3. X3: frxvert: 1 or 0 
+# 4. X4: menyrs: decimal
+# 5. nfrxvert: interger # I not use it 
 
 
-# 1.2 Remove obs with NA covariates
-data.CL <- filter(RCT.data, (!is.na(falls)) & (!is.na(nfrxvert)) & (!is.na(frxvert)) & (!is.na(menyrs)))
+# 1.2 Remove obs with NA covariates # I do not remove
+#data.CL <- filter(RCT.data, (!is.na(falls)) & (!is.na(dxhhp_0)) & (!is.na(frxvert)) & (!is.na(menyrs)))
+#data.CL <- filter(RCT.data, (!is.na(falls)) & (!is.na(nfrxvert)) & (!is.na(frxvert)) & (!is.na(menyrs)))
+data.CL <- RCT.data
 data.CL <- transmute(data.CL, age=age, falls=falls,  frx=frxvert, menyrs=menyrs, nfrx=nfrxvert, Y0=dxhhp_0, 
                      study=STUDY,  Y=(dxhhp_24-mean(dxhhp_24, na.rm=T))/sd(dxhhp_24, na.rm=T), Z=TRTN)
 
-
-summary(data.CL)
+#summary(data.CL)
 
 
 ## 2. Fit naive regression model
@@ -72,8 +73,8 @@ data.CL$subGroupId <- as.factor(data.CL$frx*2 + data.CL$falls)
 data.Hist <- filter(data.CL, !study=="ZOL")
 data.Cur <- filter(data.CL, study=="ZOL")
 
-mean.menyrs<- mean(data.Cur$menyrs)
-sd.menyrs<- sd(data.Cur$menyrs)
+mean.menyrs<- mean(data.Cur$menyrs, na.rm=T)
+sd.menyrs<- sd(data.Cur$menyrs, na.rm=T)
 mean.Y0 <- mean(data.Cur$Y0, na.rm=T)
 sd.Y0 <- sd(data.Cur$Y0, na.rm=T)
 
@@ -101,8 +102,8 @@ eparas
 ## historical 
 
 
-hmean.menyrs<- mean(data.Hist$menyrs)
-hsd.menyrs<- sd(data.Hist$menyrs)
+hmean.menyrs<- mean(data.Hist$menyrs, na.rm=T)
+hsd.menyrs<- sd(data.Hist$menyrs, na.rm=T)
 hmean.Y0 <- mean(data.Hist$Y0, na.rm=T)
 hsd.Y0 <- sd(data.Hist$Y0, na.rm=T)
 data.Hist$Y01 <-(data.Hist$Y0- hmean.Y0)/hsd.Y0
@@ -136,6 +137,8 @@ b # the true trt effect
 # For historical parameters, alpss, I will generate them based on the current model
 
 
+if (FALSE){
+  
 
 # 3. Obtain the distribution of X
 library(ks)
@@ -224,13 +227,12 @@ nerrs <- rnorm(ntest, sd=sd(fit.all$residuals))
 Ys <- Ys.m + nerrs
 
 # # Two Densities is similar
-# plot(density(data.Cur$Y[data.Cur$Z==0], na.rm=T), main="Control Group")
-# lines(density(Ys[Zs==0], na.rm=T), col="red")
-# legend("topright", legend=c("True data", "Generated data"), col=c("black", "red"), lty=c(1, 1))
-# 
-# plot(density(data.Cur$Y[data.Cur$Z==1], na.rm=T), main="Treatment Group")
-# lines(density(Ys[Zs==1], na.rm=T), col="red")
-# legend("topright", legend=c("True data", "Generated data"), col=c("black", "red"), lty=c(1, 1))
+plot(density(data.Cur$Y[data.Cur$Z==0], na.rm=T), main="Control Group")
+lines(density(Ys[Zs==0], na.rm=T), col="red")
+legend("topright", legend=c("True data", "Generated data"), col=c("black", "red"), lty=c(1, 1))
+ 
+plot(density(data.Cur$Y[data.Cur$Z==1], na.rm=T), main="Treatment Group")
+lines(density(Ys[Zs==1], na.rm=T), col="red")
+legend("topright", legend=c("True data", "Generated data"), col=c("black", "red"), lty=c(1, 1))
 
-
-
+}
