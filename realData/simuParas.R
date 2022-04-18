@@ -1,6 +1,6 @@
 #rm(list=ls())
 setwd("/home/huaqingj/MyResearch/HistTrial/")
-setwd("C:/Users/JINHU/Documents/ProjectCode/HistTrial/")
+#setwd("C:/Users/JINHU/Documents/ProjectCode/HistTrial/")
 
 load("./realData/dat.merge.Rdata")
 library(dplyr)
@@ -137,7 +137,6 @@ b # the true trt effect
 # For historical parameters, alpss, I will generate them based on the current model
 
 
-if (FALSE){
   
 
 # 3. Obtain the distribution of X
@@ -179,6 +178,7 @@ gen.Real.Xs <- function(n, fHats){
 }
 
 
+if (FALSE){
 # 4. Check the true Ys and estimated Ys
 
 sub.Paras.fn <- function(Xs, betass){

@@ -175,7 +175,7 @@ fun.real <- function(i){
 }
 
 #under H0
-#b<-0
+b<-0
 
 # sd of random error on alpha
 xi.vs <- 0.5
@@ -208,7 +208,7 @@ M <- 1000
 
 nSimu <- 1000
 for (xis in xiss){
-post.res <- mclapply(1:nSimu, fun.real, mc.cores=6)
+post.res <- mclapply(1:nSimu, fun.real, mc.cores=3)
 H <- diag(c(0.10, 0.10, 9.99, 9.99))
 sv.name <- paste0("./results/RealDataRSS", "-b-", format(b, scientific=T, digits=1), "-N-", N, "-lam-", lam, "-lamq-", 100*lam.q, "-phi0-", format(phi0, scientific=T, digits=1), "-invgam2-", invgam2, "-H-", vec2code(diag(round(H, 2)), 100), "-h-", vec2code(hs, 100), "-tps-", idx.tps, "-xis-", vec2code(xis, 10), "-nSimu-", nSimu, ".RData")
 paras <- list(invgam2=invgam2, b=b, phi0=phi0, phi1=phi1, N=N, lam.q=lam.q, hs=hs, x.tps=x.tps, H=H, M=M, xis=xis, lam=lam)
