@@ -100,6 +100,7 @@ fun.real <- function(i){
     lam.trus <- rep(-1, N+1) # record lambda
     ts <- c(ts, Sys.time())
     
+    lastRes <- NA
     for (j in (n0+1):N){
         #print(j)
         cx <- unlist(gen.Real.Xs(1, fHats))
@@ -111,7 +112,8 @@ fun.real <- function(i){
         Theta0s <- curMean.fn(Xs, Zs, alpMat, b=0)
         lam.tru <- lam.sel.fn(data, H=H, invgam2=invgam2, lam=lam, lam.q=lam.q)
         lam.trus[j] <- lam.tru
-        res <- mu0.info.est.fn(Theta0s, data, H, lam, invgam2=invgam2, lam.tru=lam.tru)
+        res <- mu0.info.est.fn(Theta0s, data, H, lam, invgam2=invgam2, lam.tru=lam.tru, lastRes=lastRes)
+        lastRes <- res
         res.ref <- mu0.info.est.fn(Theta0s, data, H, lam, phi0=res$phi0, invgam2=invgam2, is.ref=TRUE)
         
         var.info <- post.var.mu0.fn(cx, res)
@@ -143,11 +145,11 @@ fun.real <- function(i){
         data.no <- as.data.frame(data.no)
         colnames(data.no)[1:2] <- c("Y", "Z")
         
-        if ((j%%10==0)&(j>100)){
+        if ((j%%20==0)&(j>100)){
             alpMat <- sub.Paras.fn(Xs, alpss)
             Theta0s <- curMean.fn(Xs, Zs, alpMat, b=0)
             lam.tru <- lam.sel.fn(data, H=H, invgam2=invgam2, lam=lam, lam.q=lam.q)
-            res <- mu0.info.est.fn(Theta0s, data, H, lam, invgam2=invgam2, lam.tru=lam.tru)
+            res <- mu0.info.est.fn(Theta0s, data, H, lam, invgam2=invgam2, lam.tru=lam.tru, lastRes=lastRes)
             res.no <- mu0.no.est.fn(data.no, H)
             
             res.mu1 <- mu1.no.est.fn(data, H)
@@ -208,9 +210,9 @@ M <- 1000
 
 nSimu <- 1000
 for (xis in xiss){
-post.res <- mclapply(1:nSimu, fun.real, mc.cores=3)
+post.res <- mclapply(1:nSimu, fun.real, mc.cores=4)
 H <- diag(c(0.10, 0.10, 9.99, 9.99))
-sv.name <- paste0("./results/RealDataRSS", "-b-", format(b, scientific=T, digits=1), "-N-", N, "-lam-", lam, "-lamq-", 100*lam.q, "-phi0-", format(phi0, scientific=T, digits=1), "-invgam2-", invgam2, "-H-", vec2code(diag(round(H, 2)), 100), "-h-", vec2code(hs, 100), "-tps-", idx.tps, "-xis-", vec2code(xis, 10), "-nSimu-", nSimu, ".RData")
+sv.name <- paste0("./results/RealDataRSSLastRes", "-b-", format(b, scientific=T, digits=2), "-N-", N, "-lam-", lam, "-lamq-", 100*lam.q, "-phi0-", format(phi0, scientific=T, digits=1), "-invgam2-", invgam2, "-H-", vec2code(diag(round(H, 2)), 100), "-h-", vec2code(hs, 100), "-tps-", idx.tps, "-xis-", vec2code(xis, 10), "-nSimu-", nSimu, ".RData")
 paras <- list(invgam2=invgam2, b=b, phi0=phi0, phi1=phi1, N=N, lam.q=lam.q, hs=hs, x.tps=x.tps, H=H, M=M, xis=xis, lam=lam)
 save(post.res, paras, file=sv.name)
 }

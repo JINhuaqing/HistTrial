@@ -555,7 +555,7 @@ post.mean.mu0.fn <- function(cxs, res){
 }
 
 # function for estimate mu0s, tau2s, and phi0 under info and reference model
-mu0.info.est.fn <- function(Theta0s, data, H, lam, phi0=NA, invgam2=0, is.ref=FALSE, maxit=100, lam.tru=0){
+mu0.info.est.fn <- function(Theta0s, data, H, lam, phi0=NA, invgam2=0, is.ref=FALSE, maxit=100, lam.tru=0, lastRes=NA){
   #args:
   #  Theta0s: Estimated ys based on historical data
   #  data: the dataset, n x (2+p): [Y, Z, Xs]
@@ -563,6 +563,7 @@ mu0.info.est.fn <- function(Theta0s, data, H, lam, phi0=NA, invgam2=0, is.ref=FA
   #  lam: The penalty parameters
   #  is.ref: if true, reture the results of reference model distribution
   #  maxit: Maximal number of times for iteration
+  #  LastRes: When not NA, initial value by results of last run
     
     phi0.tk <- c()
     Mu0s.tk <- list()
@@ -570,11 +571,18 @@ mu0.info.est.fn <- function(Theta0s, data, H, lam, phi0=NA, invgam2=0, is.ref=FA
     p <- dim(data)[2] - 2
     Xs <- data[, 3:(p+2)]
     n <- dim(Xs)[1]
-    Tau2s <- rep(0, n)
-
+    if (is.na(lastRes)[[1]]){
+        Tau2s <- rep(0, n)
+    }else{
+        Tau2s <- c(lastRes$tau2s, 0)
+    }
 
     if (!is.ref| is.na(phi0)){
-        phi0 <- 1
+        if (is.na(lastRes)[[1]]){
+            phi0 <- 1
+        }else{
+            phi0 <- lastRes$phi0
+        }
         for (i in 1:maxit){
             Mu0s <- mOptMu0(as.matrix(Xs), data, Tau2s, phi0, Theta0s, H)
             Mu0s.tk[[i]] <- Mu0s
