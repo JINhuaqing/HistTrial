@@ -1,5 +1,6 @@
 #rm(list=ls())
-setwd("/home/huaqingj/MyResearch/HistTrial/")
+#setwd("/home/huaqingj/MyResearch/HistTrial/")
+setwd("/root/Documents/HQ/HistTrial")
 #setwd("C:/Users/JINHU/Documents/ProjectCode/HistTrial/")
 
 load("./realData/dat.merge.Rdata")
@@ -134,8 +135,18 @@ betass <- list(
 )
 betass # the true parameters
 b # the true trt effect
-# For historical parameters, alpss, I will generate them based on the current model
 
+# For historical parameters, alpss, I can generate them based on the current model
+# or use estimated data
+alpssMat <- t(rbind(eparasH[1, ], rep(0, 4), rep(0, 4), eparasH[c(2, 3), ]))
+colnames(alpssMat) <- c("intercept", "falls", "frx", "menyrs", "dxhhp_0")
+alpss <- list(
+   para1=alpssMat[1, ],
+   para2=alpssMat[2, ],
+   para3=alpssMat[3, ],
+   para4=alpssMat[4, ]
+)
+alpss # the true parameters
 
   
 
