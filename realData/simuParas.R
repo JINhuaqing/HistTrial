@@ -1,7 +1,8 @@
 #rm(list=ls())
 #setwd("/home/huaqingj/MyResearch/HistTrial/")
-setwd("/root/Documents/HQ/HistTrial")
+#setwd("/root/Documents/HQ/HistTrial")
 #setwd("C:/Users/JINHU/Documents/ProjectCode/HistTrial/")
+setwd("C:/Users/JINHU/OneDrive - connect.hku.hk/ÎÄµµ/ProjectCode/HistTrial")
 
 load("./realData/dat.merge.Rdata")
 library(dplyr)
@@ -79,9 +80,10 @@ sd.menyrs<- sd(data.Cur$menyrs, na.rm=T)
 mean.Y0 <- mean(data.Cur$Y0, na.rm=T)
 sd.Y0 <- sd(data.Cur$Y0, na.rm=T)
 
-data.Cur$menyrs1 <- (data.Cur$menyrs - mean.menyrs)/sd.menyrs
-data.Cur$Y01<- (data.Cur$Y0- mean.Y0)/sd.Y0
+data.Cur$menyrs1 <- scale(data.Cur$menyrs)
+data.Cur$Y01<- scale(data.Cur$Y0)
 
+#fit.all <- lm(Y~Z+subGroupId+menyrs1+Y01, data=data.Cur)
 fit.all <- lm(Y~Z+subGroupId+subGroupId*menyrs1+subGroupId*Y01, data=data.Cur)
 summary(fit.all)
 
@@ -103,18 +105,16 @@ eparas
 ## historical 
 
 
-hmean.menyrs<- mean(data.Hist$menyrs, na.rm=T)
-hsd.menyrs<- sd(data.Hist$menyrs, na.rm=T)
-hmean.Y0 <- mean(data.Hist$Y0, na.rm=T)
-hsd.Y0 <- sd(data.Hist$Y0, na.rm=T)
-data.Hist$Y01 <-(data.Hist$Y0- hmean.Y0)/hsd.Y0
-data.Hist$menyrs1 <- (data.Hist$menyrs - hmean.menyrs)/hsd.menyrs
+data.Hist$Y01 <-scale(data.Hist$Y0)
+data.Hist$menyrs1 <- scale(data.Hist$menyrs)
 
+#fitH.all <- lm(Y~Z+subGroupId+menyrs1+Y01, data=data.Hist)
 fitH.all <- lm(Y~Z+subGroupId+subGroupId*menyrs1+subGroupId*Y01, data=data.Hist)
 summary(fitH.all)
 coeffsH <- fitH.all$coefficients
 bH <- coeffsH[2] # historical trt effect
 parasH.Vec <- coeffsH[-2][c(1:4, 5, 7:9, 6, 10:12)];parasH.Vec
+parasH.Vec[1] <- paras.Vec[1] # I use current intercept
 eparasH <- matrix(parasH.Vec, ncol=4, byrow=T)
 eparasH[1, 2:4] <- eparasH[1, 2:4] + eparasH[1, 1]
 eparasH[2, 2:4] <- eparasH[2, 2:4] + eparasH[2, 1]
@@ -146,7 +146,7 @@ alpss <- list(
    para3=alpssMat[3, ],
    para4=alpssMat[4, ]
 )
-alpss # the true parameters
+alpss # the true parameters of history datasets
 
   
 
