@@ -83,7 +83,6 @@ sd.Y0 <- sd(data.Cur$Y0, na.rm=T)
 data.Cur$menyrs1 <- scale(data.Cur$menyrs)
 data.Cur$Y01<- scale(data.Cur$Y0)
 
-#fit.all <- lm(Y~Z+subGroupId+menyrs1+Y01, data=data.Cur)
 fit.all <- lm(Y~Z+subGroupId+subGroupId*menyrs1+subGroupId*Y01, data=data.Cur)
 summary(fit.all)
 
@@ -105,16 +104,15 @@ eparas
 ## historical 
 
 
-data.Hist$Y01 <-scale(data.Hist$Y0)
-data.Hist$menyrs1 <- scale(data.Hist$menyrs)
+data.Hist$Y01 <-scale(data.Hist$Y0, center=mean.Y0, scale=sd.Y0)
+data.Hist$menyrs1 <- scale(data.Hist$menyrs, center=mean.menyrs, scale=sd.menyrs)
 
-#fitH.all <- lm(Y~Z+subGroupId+menyrs1+Y01, data=data.Hist)
 fitH.all <- lm(Y~Z+subGroupId+subGroupId*menyrs1+subGroupId*Y01, data=data.Hist)
 summary(fitH.all)
 coeffsH <- fitH.all$coefficients
 bH <- coeffsH[2] # historical trt effect
 parasH.Vec <- coeffsH[-2][c(1:4, 5, 7:9, 6, 10:12)];parasH.Vec
-parasH.Vec[1] <- paras.Vec[1] # I use current intercept
+#parasH.Vec[1] <- paras.Vec[1] # I use current intercept
 eparasH <- matrix(parasH.Vec, ncol=4, byrow=T)
 eparasH[1, 2:4] <- eparasH[1, 2:4] + eparasH[1, 1]
 eparasH[2, 2:4] <- eparasH[2, 2:4] + eparasH[2, 1]
