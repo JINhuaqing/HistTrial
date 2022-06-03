@@ -1,21 +1,23 @@
-#rm(list=ls())
+rm(list=ls())
 #setwd("/home/huaqingj/MyResearch/HistTrial/")
 #setwd("/root/Documents/HQ/HistTrial")
 #setwd("C:/Users/JINHU/Documents/ProjectCode/HistTrial/")
 setwd("C:/Users/JINHU/OneDrive - connect.hku.hk/ÎÄµµ/ProjectCode/HistTrial")
 
 load("./realData/dat.merge.Rdata")
+
 library(dplyr)
+summary(dat.merge)
 
 ## 1. Data prepocessing
 # 1.1 remove the SOF study and only keep race ==1. 
 RCT.data <- filter(dat.merge, STUDY!="SOF" & race==1)
-#summary(RCT.data)
-#str(RCT.data)
+RCT.data <- filter(RCT.data, (STUDY=="ZOL" & age >=81)| (STUDY!="ZOL" & age >=78))
+summary(RCT.data)
+
 RCT.data$STUDY <- droplevels(RCT.data$STUDY)
 RCT.data$race <- droplevels(RCT.data$race)
-#str(RCT.data)
-#summary(RCT.data)
+summary(RCT.data)
 
 # group_by(RCT.data, STUDY) %>% 
 # summarise(
@@ -57,9 +59,10 @@ RCT.data$race <- droplevels(RCT.data$race)
 #data.CL <- filter(RCT.data, (!is.na(falls)) & (!is.na(nfrxvert)) & (!is.na(frxvert)) & (!is.na(menyrs)))
 data.CL <- RCT.data
 data.CL <- transmute(data.CL, age=age, falls=falls,  frx=frxvert, menyrs=menyrs, nfrx=nfrxvert, Y0=dxhhp_0, 
-                     study=STUDY,  Y=(dxhhp_24-mean(dxhhp_24, na.rm=T))/sd(dxhhp_24, na.rm=T), Z=TRTN)
+                     study=STUDY,  Y=dxhhp_24, Z=TRTN)
+                     #study=STUDY,  Y=(dxhhp_24-mean(dxhhp_24, na.rm=T))/sd(dxhhp_24, na.rm=T), Z=TRTN)
 
-#summary(data.CL)
+summary(data.CL)
 
 
 ## 2. Fit naive regression model
@@ -79,11 +82,14 @@ mean.menyrs<- mean(data.Cur$menyrs, na.rm=T)
 sd.menyrs<- sd(data.Cur$menyrs, na.rm=T)
 mean.Y0 <- mean(data.Cur$Y0, na.rm=T)
 sd.Y0 <- sd(data.Cur$Y0, na.rm=T)
+mean.Y <- mean(data.Cur$Y, na.rm=T)
+sd.Y <- sd(data.Cur$Y, na.rm=T)
 
-data.Cur$menyrs1 <- scale(data.Cur$menyrs)
-data.Cur$Y01<- scale(data.Cur$Y0)
+data.Cur$menyrs1 <- as.vector(scale(data.Cur$menyrs))
+data.Cur$Y01<- as.vector(scale(data.Cur$Y0))
+data.Cur$Y1<- as.vector(scale(data.Cur$Y))
 
-fit.all <- lm(Y~Z+subGroupId+subGroupId*menyrs1+subGroupId*Y01, data=data.Cur)
+fit.all <- lm(Y1~Z+subGroupId+subGroupId*menyrs1+subGroupId*Y01, data=data.Cur)
 summary(fit.all)
 
 coeffs <- fit.all$coefficients;coeffs
@@ -104,10 +110,11 @@ eparas
 ## historical 
 
 
-data.Hist$Y01 <-scale(data.Hist$Y0, center=mean.Y0, scale=sd.Y0)
-data.Hist$menyrs1 <- scale(data.Hist$menyrs, center=mean.menyrs, scale=sd.menyrs)
+data.Hist$Y01 <-as.vector(scale(data.Hist$Y0, center=mean.Y0, scale=sd.Y0))
+data.Hist$Y1 <-as.vector(scale(data.Hist$Y, center=mean.Y, scale=sd.Y))
+data.Hist$menyrs1 <- as.vector(scale(data.Hist$menyrs, center=mean.menyrs, scale=sd.menyrs))
 
-fitH.all <- lm(Y~Z+subGroupId+subGroupId*menyrs1+subGroupId*Y01, data=data.Hist)
+fitH.all <- lm(Y1~Z+subGroupId+subGroupId*menyrs1+subGroupId*Y01, data=data.Hist)
 summary(fitH.all)
 coeffsH <- fitH.all$coefficients
 bH <- coeffsH[2] # historical trt effect
@@ -158,15 +165,28 @@ for (i in 1:4){
     fHats[[i]] <- fHat
 }
 
+fHatsH <- list()
+for (i in 1:4){
+    X0 <- filter(data.Hist, data.Hist$subGroupId==i-1) %>% transmute(menyrs=menyrs, Y0=Y0)
+    nonNaIdxs <- rowSums(is.na(X0)) == 0
+    fHat <- kde(as.matrix(X0[nonNaIdxs, ]))
+    fHatsH[[i]] <- fHat
+}
+
+subGrpDist <- table(data.Cur$subGroupId)
+subGrpDist <- subGrpDist/sum(subGrpDist)
+subGrpDistH <- table(data.Hist$subGroupId)
+subGrpDistH <- subGrpDistH/sum(subGrpDistH)
+
 # function to generate data from real data
-gen.Real.Xs <- function(n, fHats){
+gen.Real.Xs <- function(n, fHats, subGrpDist=NULL){
     maps <- list()
     maps[[1]] <- c(0, 0)
     maps[[2]] <- c(1, 0)
     maps[[3]] <- c(0, 1)
     maps[[4]] <- c(1, 1)
     
-    subIds <- sample.int(4, n, replace=T) - 1
+    subIds <- sample.int(4, n, replace=T, prob=subGrpDist) - 1
     sps <- c()
     for (i in 1:4){
         fHat <- fHats[[i]]
@@ -222,8 +242,8 @@ curMean.fn <- function(Xs, Zs, betMat, b){
     mys
 }
 
-ntest <- 1000
-Xs <- gen.Real.Xs(ntest, fHats)
+ntest <- 10000
+Xs <- gen.Real.Xs(ntest, fHats, subGrpDist)
 
 idx0 <- sample.int(ntest, size=floor(ntest/2))
 Zs <- rep(1, ntest)
@@ -236,12 +256,15 @@ nerrs <- rnorm(ntest, sd=sd(fit.all$residuals))
 Ys <- Ys.m + nerrs
 
 # # Two Densities is similar
-plot(density(data.Cur$Y[data.Cur$Z==0], na.rm=T), main="Control Group")
+plot(density(data.Cur$Y1[data.Cur$Z==0], na.rm=T), main="Control Group")
 lines(density(Ys[Zs==0], na.rm=T), col="red")
 legend("topright", legend=c("True data", "Generated data"), col=c("black", "red"), lty=c(1, 1))
  
-plot(density(data.Cur$Y[data.Cur$Z==1], na.rm=T), main="Treatment Group")
+plot(density(data.Cur$Y1[data.Cur$Z==1], na.rm=T), main="Treatment Group")
 lines(density(Ys[Zs==1], na.rm=T), col="red")
 legend("topright", legend=c("True data", "Generated data"), col=c("black", "red"), lty=c(1, 1))
 
 }
+
+plot(density(Ys[Zs==1], na.rm=T), col="red")
+
