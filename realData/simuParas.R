@@ -12,7 +12,7 @@ summary(dat.merge)
 ## 1. Data prepocessing
 # 1.1 remove the SOF study and only keep race ==1. 
 RCT.data <- filter(dat.merge, STUDY!="SOF" & race==1)
-RCT.data <- filter(RCT.data, (STUDY=="ZOL" & age >=81)| (STUDY!="ZOL" & age >=78))
+RCT.data <- filter(RCT.data, (STUDY=="ZOL" & age >=80)| (STUDY!="ZOL" & age >=78))
 summary(RCT.data)
 
 RCT.data$STUDY <- droplevels(RCT.data$STUDY)
@@ -266,5 +266,4 @@ legend("topright", legend=c("True data", "Generated data"), col=c("black", "red"
 
 }
 
-plot(density(Ys[Zs==1], na.rm=T), col="red")
 
