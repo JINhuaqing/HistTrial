@@ -19,6 +19,8 @@ RCT.data$STUDY <- droplevels(RCT.data$STUDY)
 RCT.data$race <- droplevels(RCT.data$race)
 summary(RCT.data)
 
+
+
 # group_by(RCT.data, STUDY) %>% 
 # summarise(
 #     isNA=sum(is.na(VFXINC_36)), 
@@ -58,7 +60,7 @@ summary(RCT.data)
 #data.CL <- filter(RCT.data, (!is.na(falls)) & (!is.na(dxhhp_0)) & (!is.na(frxvert)) & (!is.na(menyrs)))
 #data.CL <- filter(RCT.data, (!is.na(falls)) & (!is.na(nfrxvert)) & (!is.na(frxvert)) & (!is.na(menyrs)))
 data.CL <- RCT.data
-data.CL <- transmute(data.CL, age=age, falls=falls,  frx=frxvert, menyrs=menyrs, nfrx=nfrxvert, Y0=dxhhp_0, 
+data.CL <- transmute(data.CL, falls=falls,  frx=frxvert, menyrs=menyrs, Y0=dxhhp_0, 
                      study=STUDY,  Y=dxhhp_24, Z=TRTN)
                      #study=STUDY,  Y=(dxhhp_24-mean(dxhhp_24, na.rm=T))/sd(dxhhp_24, na.rm=T), Z=TRTN)
 
@@ -68,7 +70,7 @@ summary(data.CL)
 ## 2. Fit naive regression model
 # 2.1 divide into 4 subgroups by frx and falls
 # We assume for different frx and falls, trt effect is the same
-# while effects of age and menyrs will change 
+# while effects of dxhhp and menyrs will change 
 # So model is 
 # dxhhp_24 ~ beta0(X2, X3) + b *Z + beta1(X2, X3) X1 + beta4(X2, X3) X4 
 data.CL$subGroupId <- as.factor(data.CL$frx*2 + data.CL$falls)
@@ -77,6 +79,12 @@ data.CL$subGroupId <- as.factor(data.CL$frx*2 + data.CL$falls)
 # because, frx == 0 in FIT.clin trial while frx==1 in FIT.vert trial
 data.Hist <- filter(data.CL, !study=="ZOL")
 data.Cur <- filter(data.CL, study=="ZOL")
+kpIdx.Cur <- rowSums(is.na(data.Cur)) == 0
+kpIdx.Hist <-rowSums(is.na(data.Hist)) == 0
+data.Cur <- data.Cur[kpIdx.Cur, ]
+data.Hist <- data.Hist[kpIdx.Hist, ]
+summary(data.Cur)
+summary(data.Hist)
 
 mean.menyrs<- mean(data.Cur$menyrs, na.rm=T)
 sd.menyrs<- sd(data.Cur$menyrs, na.rm=T)
