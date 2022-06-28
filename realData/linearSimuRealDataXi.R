@@ -1,3 +1,5 @@
+# this script is to run the real data application when 
+# varying xi from 0 to 1 (alphas)
 #rm(list=ls())
 library(magrittr)
 library(dplyr)

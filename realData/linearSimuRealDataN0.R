@@ -1,4 +1,4 @@
-# this script is to run real data when N is changed
+# this script is to run real data when N0 is changed
 #rm(list=ls())
 library(magrittr)
 library(dplyr)
