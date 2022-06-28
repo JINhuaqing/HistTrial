@@ -1,8 +1,7 @@
 rm(list=ls())
 #setwd("/home/huaqingj/MyResearch/HistTrial/")
 #setwd("/root/Documents/HQ/HistTrial")
-#setwd("C:/Users/JINHU/Documents/ProjectCode/HistTrial/")
-setwd("C:/Users/JINHU/OneDrive - connect.hku.hk/ÎÄµµ/ProjectCode/HistTrial")
+setwd("C:/Users/JINHU/OneDrive - connect.hku.hk/æ–‡æ¡£/ProjectCode/HistTrial")
 
 load("./realData/dat.merge.Rdata")
 
@@ -12,6 +11,11 @@ summary(dat.merge)
 ## 1. Data prepocessing
 # 1.1 remove the SOF study and only keep race ==1. 
 RCT.data <- filter(dat.merge, STUDY!="SOF" & race==1)
+RCT.data.Cur <- filter(dat.merge, STUDY=="ZOL")
+quantile(RCT.data.Cur$age, 0.9)
+RCT.data.Hist <- filter(dat.merge, STUDY!="ZOL")
+quantile(RCT.data.Hist$age[!is.na(RCT.data.Hist$age)], 0.9)
+
 RCT.data <- filter(RCT.data, (STUDY=="ZOL" & age >=80)| (STUDY!="ZOL" & age >=78))
 summary(RCT.data)
 
@@ -56,9 +60,7 @@ summary(RCT.data)
 # 5. nfrxvert: interger # I not use it 
 
 
-# 1.2 Remove obs with NA covariates # I do not remove
-#data.CL <- filter(RCT.data, (!is.na(falls)) & (!is.na(dxhhp_0)) & (!is.na(frxvert)) & (!is.na(menyrs)))
-#data.CL <- filter(RCT.data, (!is.na(falls)) & (!is.na(nfrxvert)) & (!is.na(frxvert)) & (!is.na(menyrs)))
+# 1.2 Remove obs with NA covariates 
 data.CL <- RCT.data
 data.CL <- transmute(data.CL, falls=falls,  frx=frxvert, menyrs=menyrs, Y0=dxhhp_0, 
                      study=STUDY,  Y=dxhhp_24, Z=TRTN)
@@ -77,6 +79,7 @@ data.CL$subGroupId <- as.factor(data.CL$frx*2 + data.CL$falls)
 
 # I pool two historical datasets together 
 # because, frx == 0 in FIT.clin trial while frx==1 in FIT.vert trial
+# remove the NA observation
 data.Hist <- filter(data.CL, !study=="ZOL")
 data.Cur <- filter(data.CL, study=="ZOL")
 kpIdx.Cur <- rowSums(is.na(data.Cur)) == 0
@@ -113,6 +116,22 @@ eparas
 
 
 
+
+
+
+
+if (FALSE){
+for (id in 0:3){
+jpeg(paste0("./plots/RealDataDiff_Subgrp", id+1, ".jpg"), width=6, height=6, unit="in", res=500)
+cYh <- data.Hist$Y[(data.Hist$subGroupId==id & data.Hist$Z==0)]
+cY <- data.Cur$Y[(data.Cur$subGroupId==id & data.Cur$Z==0)]
+plot(density(cY, adjust=1.2), ylim=c(0, 7), xlab="Hip BMD", main=paste0("Subgroup ", id+1), lty=1, lwd=3, 
+     cex.main=1.5, cex.lab=1.5)
+lines(density(cYh, adjust=1.2), col="blue", lwd=3, lty=2)
+legend("topleft", legend=c("Current trial", "Historical trial"), col=c(1, "blue"), lwd=3, lty=c(1, 2), cex=1.3)
+dev.off()
+}
+}
 
 
 ## historical 
