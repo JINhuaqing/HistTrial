@@ -4,3 +4,5 @@ Required R pkgs
 - mvtnorm
 - arrApply
 - kedd
+
+You can pull a docker image from `huaqingjin/bhca' directly to run the code.
