@@ -584,15 +584,21 @@ mu0.info.est.fn <- function(Theta0s, data, H, lam, phi0=NA, invgam2=0, is.ref=FA
             phi0 <- lastRes$phi0
         }
         for (i in 1:maxit){
+            t0 <- Sys.time()
             Mu0s <- mOptMu0(as.matrix(Xs), data, Tau2s, phi0, Theta0s, H)
             Mu0s.tk[[i]] <- Mu0s
 
+            t1 <- Sys.time()
             phi0 <- optPhi0(data, Mu0s)
             phi0.tk[i] <- phi0
             
+            t2 <- Sys.time()
             Tau2s.res  <- mOptTau(as.matrix(Xs), data, Mu0s, lam, Theta0s, H, invgam2, lam.tru)
             Tau2s <- Tau2s.res$tau2
             Tau2s.tk[[i]] <- Tau2s.res$tau2
+            t3 <- Sys.time()
+            ts <- c(t0, t1, t2, t3)
+            #print(diff(ts))
             
             if (i > 1){
                 err.tau2 <- mean((Tau2s.tk[[i]] - Tau2s.tk[[i-1]])**2)
@@ -608,8 +614,11 @@ mu0.info.est.fn <- function(Theta0s, data, H, lam, phi0=NA, invgam2=0, is.ref=FA
    }
 
     if (!is.ref){
-        res <- list(tau2s=Tau2s, mu0s=Mu0s, phi0=phi0, mu0tk=Mu0s.tk, tau2stk=Tau2s.tk,
-                theta0s=Theta0s, H=H, data=data, lam=lam, phi0.tk=phi0.tk, invgam2=invgam2, lam.tru=lam.tru, tau2.tds=Tau2s.res$tau2.td)
+        res <- list(tau2s=Tau2s, mu0s=Mu0s, phi0=phi0, 
+                #mu0tk=Mu0s.tk, tau2stk=Tau2s.tk,
+                theta0s=Theta0s, H=H, data=data, lam=lam, 
+                #phi0.tk=phi0.tk, 
+                invgam2=invgam2, lam.tru=lam.tru, tau2.tds=Tau2s.res$tau2.td, iterN=i)
     }else{
         Tau20s <- rep(0, n)
         Mu0s.no <- mOptMu0(as.matrix(Xs), data, Tau20s, phi0, Theta0s, H)

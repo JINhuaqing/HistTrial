@@ -1,7 +1,7 @@
 #rm(list=ls())
 library(magrittr)
 library(dplyr)
-setwd("/home/huaqingj/MyResearch/HistTrial")
+setwd("/root/Documents/HQ/HistTrial")
 #setwd("/home/r13user3/MyResearch/HistTrial")
 #setwd("C:/Users/JINHU/Documents/ProjectCode/HistTrial")
 source("utils.R")
@@ -65,14 +65,15 @@ CI.fn <- function(errs){
 fun.real <- function(i){
     ts <- c()
     ts <- c(ts, Sys.time())
-    #set.seed(seeds[i])
+    set.seed(seeds[i])
     alpss <- betass
     for (jj in 1:4){
        # error factor is N(1+xi, 0.3) * beta if xi is not 0; otherwise 1
         alpss[[jj]] <- betass[[jj]] *  rnorm(p+1, 1+xis[[jj]], ifelse(xis[[jj]]==0, 0, 0.3))
     }
     print(i)
-    Xs <- gen.Real.Xs(n0, fHats)
+    #Xs <- gen.Real.Xs(n0, fHats)
+    Xs <- gen.Real.Xs(n0, fHats, subGrpDist)
     
     idx0 <- sample.int(n0, size=floor(n0/2))
     Zs <- rep(1, n0)
@@ -98,9 +99,11 @@ fun.real <- function(i){
     lam.trus <- rep(-1, N+1) # record lambda
     ts <- c(ts, Sys.time())
     
+    lastRes <- NA
     for (j in (n0+1):N){
         #print(j)
-        cx <- unlist(gen.Real.Xs(1, fHats))
+        #cx <- unlist(gen.Real.Xs(1, fHats))
+        cx <- unlist(gen.Real.Xs(1, fHats, subGrpDist))
         
         
         H <- diag(c(0.10, 0.10, bw.nrd(data$menyr), bw.nrd(data$Y0)))
@@ -109,7 +112,8 @@ fun.real <- function(i){
         Theta0s <- curMean.fn(Xs, Zs, alpMat, b=0)
         lam.tru <- lam.sel.fn(data, H=H, invgam2=invgam2, lam=lam, lam.q=lam.q)
         lam.trus[j] <- lam.tru
-        res <- mu0.info.est.fn(Theta0s, data, H, lam, invgam2=invgam2, lam.tru=lam.tru)
+        res <- mu0.info.est.fn(Theta0s, data, H, lam, invgam2=invgam2, lam.tru=lam.tru, lastRes=lastRes)
+        lastRes <- res
         res.ref <- mu0.info.est.fn(Theta0s, data, H, lam, phi0=res$phi0, invgam2=invgam2, is.ref=TRUE)
         
         var.info <- post.var.mu0.fn(cx, res)
@@ -149,7 +153,7 @@ fun.real <- function(i){
     Theta0s <- curMean.fn(Xs, Zs, alpMat, b=0)
     lam.tru <- lam.sel.fn(data, H=H, invgam2=invgam2, lam=lam, lam.q=lam.q)
     lam.trus[N+1] <- lam.tru
-    res <- mu0.info.est.fn(Theta0s, data, H, lam, invgam2=invgam2, lam.tru=lam.tru)
+    res <- mu0.info.est.fn(Theta0s, data, H, lam, invgam2=invgam2, lam.tru=lam.tru, lastRes=lastRes)
     res.no <- mu0.no.est.fn(data.no, H)
     
     res.mu1 <- mu1.no.est.fn(data, H)
@@ -171,30 +175,32 @@ fun.real <- function(i){
 
     
     ts <- c(ts, Sys.time())
-    print(diff(ts))
+    #print(diff(ts))
     rv <- list(mtrt=c(trt.eff, trt.eff.no), sps.trts=sps.trts, data=data, data.no=data.no, res=res, Rs=Rs, lam.trus=lam.trus,alpss=alpss, betass=betass)
     rv
 }
 
 #under H0
-#b<-0
+b<-0
 
 # sd of random error on alpha
-xi.vs <- 0.5
+xi.vs <- seq(0, 10, 2)/10
 xiss <- list()
 for (ii in 1:length(xi.vs)){
-    xiss[[ii]] <- c(0, xi.vs[ii], xi.vs[ii], 0)
+    #xiss[[ii]] <- c(0, xi.vs[ii], xi.vs[ii], 0)
+    xiss[[ii]] <- c(xi.vs[ii], xi.vs[ii], xi.vs[ii], xi.vs[ii])
 }
 #xis <- c(0, 0, 0, 0)
 #xis <- c(0, 0.5, 0.5, 0)
 
+#invgam2 <- 0.2
 invgam2 <- 0.33
 
 phi0 = phi1 = sd(fit.all$residuals)
 N <- 200 # total sample size
 # parameters
-lam.q <- 0.15
-lam <- 200
+lam.q <- 0.10
+lam <- 300
 hs <- c(1.1, 1.1, 1.3, 1.3)
 x.tps <- c(2, 2, "c", "c")
 idx.tps <- paste0(x.tps, collapse="")
@@ -208,11 +214,11 @@ n0 <- 20
 # to calculate the prob
 M <- 1000
 
-nSimu <- 100
+nSimu <- 2000
 for (xis in xiss){
-post.res <- mclapply(1:nSimu, fun.real, mc.cores=1)
+post.res <- mclapply(1:nSimu, fun.real, mc.cores=35)
 H <- diag(c(0.10, 0.10, 9.99, 9.99))
-sv.name <- paste0("./results/RealDataRSS", "-b-", format(b, scientific=T, digits=1), "-N-", N, "-lam-", lam, "-lamq-", 100*lam.q, "-phi0-", format(phi0, scientific=T, digits=1), "-invgam2-", invgam2, "-H-", vec2code(diag(round(H, 2)), 100), "-h-", vec2code(hs, 100), "-tps-", idx.tps, "-xis-", vec2code(xis, 10), "-nSimu-", nSimu, ".RData")
+sv.name <- paste0("./results/RealDataSubAge", "-b-", format(b, scientific=T, digits=1), "-N-", N, "-lam-", lam, "-lamq-", 100*lam.q, "-phi0-", format(phi0, scientific=T, digits=1), "-invgam2-", invgam2, "-H-", vec2code(diag(round(H, 2)), 100), "-h-", vec2code(hs, 100), "-tps-", idx.tps, "-xis-", vec2code(xis, 10), "-nSimu-", nSimu, ".RData")
 paras <- list(invgam2=invgam2, b=b, phi0=phi0, phi1=phi1, N=N, lam.q=lam.q, hs=hs, x.tps=x.tps, H=H, M=M, xis=xis, lam=lam)
 save(post.res, paras, file=sv.name)
 }

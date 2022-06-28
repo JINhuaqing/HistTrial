@@ -92,11 +92,15 @@ fun.real <- function(i){
     ts <- c()
     ts <- c(ts, Sys.time())
     set.seed(seeds[i])
-    kpIdx <- sample.int(dim(data.Hist)[1], 350)
-    curDat <- data.Hist[kpIdx, ]
-
+    is.AllSub <- FALSE
+    while (!is.AllSub){
+        kpIdx <- sample.int(dim(data.Hist)[1], N0)
+        curDat <- data.Hist[kpIdx, ]
+        is.AllSub <- sum(table(curDat$subGroupId) <= 2) == 0
+        #print(table(curDat$subGroupId))
+    }
     alpss <- alpss.fn(curDat)
-    print(i)
+    print(c(N0, i))
     Xs <- gen.Real.Xs(n0, fHats, subGrpDist)
     
     idx0 <- sample.int(n0, size=floor(n0/2))
@@ -175,7 +179,7 @@ fun.real <- function(i){
         data.no <- as.data.frame(data.no)
         colnames(data.no)[1:2] <- c("Y", "Z")
         
-        if ((j%%40==0)&(j>=40)){
+        if (j==N){
             alpMat <- sub.Paras.fn(Xs, alpss)
             Theta0s <- curMean.fn(Xs, Zs, alpMat, b=0)
             lam.tru <- lam.sel.fn(data, H=H, invgam2=invgam2, lam=lam, lam.q=lam.q)
@@ -199,7 +203,7 @@ fun.real <- function(i){
             sps.trts <- cbind(sps.trts, sps.trts.no)
 
             
-            rvs[[j]] <- list(mtrt=c(trt.eff, trt.eff.no), sps.trts=sps.trts, data=data, data.no=data.no, res=res, Rs=Rs, lam.trus=lam.trus,alpss=alpss, betass=betass)
+            rvs <- list(mtrt=c(trt.eff, trt.eff.no), sps.trts=sps.trts, data=data, data.no=data.no, res=res, Rs=Rs, lam.trus=lam.trus,alpss=alpss, betass=betass)
         }
         
     }
@@ -212,7 +216,7 @@ b<-0
 invgam2 <- 0.33
 
 phi0 = phi1 = sd(fit.all$residuals)
-N <- 400 # total sample size
+N <- 200 # total sample size
 # parameters
 lam.q <- 0.10
 lam <- 300
@@ -224,15 +228,21 @@ p <- length(x.tps)
 
 # initial dataset
 n0 <- 20
+# the sample size to estimate the parameters for historical data
+#N0s <- c(seq(50, 350, 50))
+N0s <- c(30, seq(50, 350, 50))
+#N0s <- c(20, seq(50, 350, 50))
 
 # for hypothesis test
 # to calculate the prob
 M <- 1000
 
 nSimu <- 2000
-post.res <- mclapply(1:nSimu, fun.real, mc.cores=35)
+for (N0 in N0s){
+
+post.res <- mclapply(1:nSimu, fun.real, mc.cores=18)
 H <- diag(c(0.10, 0.10, 9.99, 9.99))
-folder.name <- paste0("./results/RealDataPureResampleAlp", "-b-", format(b, scientific=T, digits=2), "-N-", N, "-lam-", lam, "-lamq-", 100*lam.q, "-phi0-", format(phi0, scientific=T, digits=1), "-invgam2-", invgam2, "-H-", vec2code(diag(round(H, 2)), 100), "-h-", vec2code(hs, 100), "-tps-", idx.tps, "-nSimu-", nSimu)
+folder.name <- paste0("./results/RealDataPureResampleHistSS", "-b-", format(b, scientific=T, digits=2), "-N-", N, "-N0-", N0, "-lam-", lam, "-lamq-", 100*lam.q, "-phi0-", format(phi0, scientific=T, digits=1), "-invgam2-", invgam2, "-H-", vec2code(diag(round(H, 2)), 100), "-h-", vec2code(hs, 100), "-tps-", idx.tps, "-nSimu-", nSimu)
 if (!dir.exists(folder.name)){
     dir.create(folder.name)
 }
@@ -243,4 +253,5 @@ for (ix in 1:nSimu){
     save(curRes, file=paste0(folder.name, "/", ix, ".RData"))
 }
 
+}
 
