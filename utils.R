@@ -6,7 +6,8 @@
 # mvtnorm: for mvnorm kernel function
 library(mvtnorm)
 library(arrApply)
-library(kedd)
+#library(kedd) # I do not which functions need this pkg, but it does not support for the current version of R
+# for kernel.fun, I forgive this  
 
 
 
@@ -201,7 +202,11 @@ mMKF <- function(cxs, Xs, H){
     difXArr <- cxArr - XsArr
     difXArr <- aperm(difXArr, c(3, 1, 2))
     difXmat <- matrix(difXArr, ncol=p)
-    vs.vec <- dmvnorm(difXmat, sigma=H)
+    if (dim(H)[1] > 1){
+        vs.vec <- dmvnorm(difXmat, sigma=H)
+    }else{
+        vs.vec <- dnorm(difXmat, sd=H)
+    }
     vs <- matrix(vs.vec, ncol=m)
   #  vs <- vs/ncMat
   }
@@ -226,8 +231,15 @@ trunFn <- function(xs, lam.tru){
 
 }
 
-# univariate kernel fn with K(0) = 1
-normKfn <- function(x, h=1, kt="epanechnikov"){
+# the epanechnikov kernel function
+ep.kernel <- function(x){
+   fct <- 3/4
+   rv <- fct* (1-x**2) * (abs(x)<=1)
+   rv
+}
+
+# univariate ep kernel fn with K(0) = 1
+normKfn <- function(x, h=1){
   #args:
   # x: n x 1 or n x p
   # h: bw, of size p
@@ -245,11 +257,38 @@ normKfn <- function(x, h=1, kt="epanechnikov"){
     h <- rep(h, p)
   }
   
-  c <- kernel.fun(0, kernel=kt)$kx
-  ys <- lapply(1:p, function(i){kernel.fun(x[, i]/h[i], kernel=kt)$kx/h[i]/c})
+  c <- ep.kernel(0)
+  ys <- lapply(1:p, function(i){ep.kernel(x[, i]/h[i])/h[i]/c})
   y <- do.call(cbind, ys)
   y
 }
+
+
+# # univariate kernel fn with K(0) = 1
+# this fun is more comprehensive, but require kedd pkg.
+# normKfn <- function(x, h=1, kt="epanechnikov"){
+#   #args:
+#   # x: n x 1 or n x p
+#   # h: bw, of size p
+#   
+# 
+#   if (is.null(dim(x))){
+#     p <- 1
+#   }else{
+#     p <- dim(x)[2]
+#   }
+#   
+#   x <- matrix(x, ncol=p)
+#   
+#   if (length(h) == 1) {
+#     h <- rep(h, p)
+#   }
+#   
+#   c <- kernel.fun(0, kernel=kt)$kx
+#   ys <- lapply(1:p, function(i){kernel.fun(x[, i]/h[i], kernel=kt)$kx/h[i]/c})
+#   y <- do.call(cbind, ys)
+#   y
+# }
 
 # calculate the allo prob given the imbalance measure
 allo.probs.fn <- function(gs){
@@ -270,7 +309,7 @@ optMu1 <- function(x, data, invsigma2, phi1, Theta1s, H){
   #    H: cov mat, p x p
     
     p <-length(x)
-    Xs <- as.matrix(data[, 3:(p+2)])
+    Xs <- as.matrix(data[, 3:(p+2), drop=FALSE])
     Zs <- data$Z
     
     Ws <- 1/2/phi1**2 + invsigma2/2
@@ -296,7 +335,7 @@ mOptMu1 <- function(cxs, data, invsigma2, phi1, Theta1s, H){
     }else{
         m <- dim(cxs)[1]
         p <- dim(cxs)[2]
-        Xs <- as.matrix(data[, 3:(p+2)])
+        Xs <- as.matrix(data[, 3:(p+2), drop=FALSE])
         n <- dim(Xs)[1]
         Zs <- data$Z
         ZsMat <- matrix(rep(Zs, m), ncol=m)
@@ -327,7 +366,7 @@ optMu0 <- function(x, data, Tau2s, phi0, Theta0s, H){
   #    H: cov mat, p x p
     
     p <-length(x)
-    Xs <- as.matrix(data[, 3:(p+2)])
+    Xs <- as.matrix(data[, 3:(p+2), drop=FALSE])
     sZs <- 1 - data$Z
     
     Ws <- 1/2/phi0**2 + Tau2s/2
@@ -353,7 +392,7 @@ mOptMu0 <- function(cxs, data, Tau2s, phi0, Theta0s, H){
     }else{
         m <- dim(cxs)[1]
         p <- dim(cxs)[2]
-        Xs <- as.matrix(data[, 3:(p+2)])
+        Xs <- as.matrix(data[, 3:(p+2), drop=FALSE])
         sZs <- 1 - data$Z
         sZsMat <- matrix(rep(sZs, m), ncol=m)
         
@@ -371,6 +410,7 @@ mOptMu0 <- function(cxs, data, Tau2s, phi0, Theta0s, H){
     return(vs)
 }
 
+
 # optimize tau2(X) given [mu0(X1), ..., mu0(Xn)]
 optTau <- function(x, data, Mu0s, lam, Theta0s, H, invgam2=0, lam.tru=0){
   #args
@@ -383,7 +423,7 @@ optTau <- function(x, data, Mu0s, lam, Theta0s, H, invgam2=0, lam.tru=0){
   #    H: cov mat, p x p
   #    invgam2: 1/invgam2 is the variance parameter of HN prior
     p <-length(x)
-    Xs <- as.matrix(data[, 3:(p+2)])
+    Xs <- as.matrix(data[, 3:(p+2), drop=F])
     sZs <- 1 - data$Z
     ks <- MKF(x, Xs, H=H)
     
@@ -415,7 +455,7 @@ mOptTau <- function(cxs, data, Mu0s, lam, Theta0s, H, invgam2=0, lam.tru=0){
         p <-dim(cxs)[2]
         m <-dim(cxs)[1]
         
-        Xs <- as.matrix(data[, 3:(p+2)])
+        Xs <- as.matrix(data[, 3:(p+2), drop=F])
         sZs <- 1 - data$Z
         sZsMat <- matrix(rep(sZs, m), ncol=m)
         mks <- mMKF(cxs, Xs, H=H)
@@ -500,7 +540,7 @@ post.var.mu0.fn <- function(cxs, res){
       
   m <- dim(xs)[1]
   p <- dim(xs)[2]
-  Xs <- as.matrix(res$data[, 3:(p+2)])
+  Xs <- as.matrix(res$data[, 3:(p+2), drop=F])
   tau2Mat <- matrix(rep(res$tau2s, m), ncol=m)
   sZs <- 1 - res$data$Z
   sZsMat <- matrix(rep(sZs, m), ncol=m)
@@ -531,7 +571,7 @@ post.mean.mu0.fn <- function(cxs, res){
       
   m <- dim(xs)[1]
   p <- dim(xs)[2]
-  Xs <- as.matrix(res$data[, 3:(p+2)])
+  Xs <- as.matrix(res$data[, 3:(p+2), drop=F])
   tau2Mat <- matrix(rep(res$tau2s, m), ncol=m)
   sZs <- 1 - res$data$Z
   sZsMat <- matrix(rep(sZs, m), ncol=m)
@@ -569,7 +609,7 @@ mu0.info.est.fn <- function(Theta0s, data, H, lam, phi0=NA, invgam2=0, is.ref=FA
     Mu0s.tk <- list()
     Tau2s.tk <- list()
     p <- dim(data)[2] - 2
-    Xs <- data[, 3:(p+2)]
+    Xs <- data[, 3:(p+2), drop=FALSE]
     n <- dim(Xs)[1]
     if (is.na(lastRes)[[1]]){
         Tau2s <- rep(0, n)
@@ -635,7 +675,7 @@ mu0.no.est.fn <- function(data, H){
   #  H: cov mat, p x p
     
     p <- dim(data)[2] - 2
-    Xs <- data[, 3:(p+2)]
+    Xs <- data[, 3:(p+2), drop=F]
     n <- dim(Xs)[1]
     Tau2s <- rep(0, n)
     phi0 <- 1
@@ -658,7 +698,7 @@ mu1.info.est.fn <- function(Theta1s, data, H, invsigma2=0, maxit=100){
     phi1.tk <- c()
     Mu1s.tk <- list()
     p <- dim(data)[2] - 2
-    Xs <- data[, 3:(p+2)]
+    Xs <- data[, 3:(p+2), drop=F]
     n <- dim(Xs)[1]
 
     phi1 <- 1
@@ -693,7 +733,7 @@ mu1.no.est.fn <- function(data, H){
   #  H: cov mat, p x p
     
     p <- dim(data)[2] - 2
-    Xs <- data[, 3:(p+2)]
+    Xs <- data[, 3:(p+2), drop=F]
     n <- dim(Xs)[1]
     phi1 <- 1
 
@@ -717,7 +757,7 @@ post.var.mu1.fn <- function(cxs, res){
       
   m <- dim(xs)[1]
   p <- dim(xs)[2]
-  Xs <- as.matrix(res$data[, 3:(p+2)])
+  Xs <- as.matrix(res$data[, 3:(p+2), drop=F])
   Zs <- res$data$Z
   ZsMat <- matrix(rep(Zs, m), ncol=m)
   
@@ -747,7 +787,7 @@ post.mean.mu1.fn <- function(cxs, res){
       
   m <- dim(xs)[1]
   p <- dim(xs)[2]
-  Xs <- as.matrix(res$data[, 3:(p+2)])
+  Xs <- as.matrix(res$data[, 3:(p+2), drop=F])
   Zs <-  res$data$Z
   ZsMat <- matrix(rep(Zs, m), ncol=m)
   Ys <- res$data$Y
@@ -798,7 +838,7 @@ lam.sel.fn <- function(data, H, invgam2, lam, lam.q=0.05){
     # args:
     #    lam.q: the quantile to select a suitable lambda
     p <- dim(data)[2] - 2
-    Xs.mat <- as.matrix(data[, 3:(p+2)])
+    Xs.mat <- as.matrix(data[, 3:(p+2), drop=F])
     res.hist.true <- mu0.no.est.fn(data, H)
     Theta0s.true <- mu0.efn(Xs.mat, res.hist.true)
     res.lam.true <- mu0.info.est.fn(Theta0s.true, data, H, lam=lam, invgam2=invgam2, lam.tru=0)

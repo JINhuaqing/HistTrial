@@ -1,5 +1,7 @@
+.Rhistory
 .ipynb_checkpoints
 *.RData
 plots/*
 tmp*
 *.rtf
+results/useful_results.zip
