@@ -2,6 +2,7 @@ rm(list=ls())
 #setwd("/home/huaqingj/MyResearch/HistTrial/")
 #setwd("/root/Documents/HQ/HistTrial")
 setwd("C:/Users/JINHU/OneDrive - connect.hku.hk/æ–‡æ¡£/ProjectCode/HistTrial")
+setwd("C:/Users/JINHU/OneDrive - connect.hku.hk/ÎÄµµ/ProjectCode/HistTrial")
 
 load("./realData/dat.merge.Rdata")
 
@@ -22,6 +23,23 @@ summary(RCT.data)
 RCT.data$STUDY <- droplevels(RCT.data$STUDY)
 RCT.data$race <- droplevels(RCT.data$race)
 summary(RCT.data)
+
+# data.CL <- RCT.data
+# data.CL <- transmute(data.CL, falls=falls,  frx=frxvert, menyrs=menyrs, Y0=dxhhp_0, 
+#                      study=STUDY,  Y=dxhhp_24, Z=TRTN)
+# summary(data.CL)
+# 
+# # I pool two historical datasets together 
+# # because, frx == 0 in FIT.clin trial while frx==1 in FIT.vert trial
+# # remove the NA observation
+# data.Hist <- filter(data.CL, !study=="ZOL")
+# data.Cur <- filter(data.CL, study=="ZOL")
+# kpIdx.Cur <- rowSums(is.na(data.Cur)) == 0
+# kpIdx.Hist <-rowSums(is.na(data.Hist)) == 0
+# data.Cur <- data.Cur[kpIdx.Cur, ]
+# data.Hist <- data.Hist[kpIdx.Hist, ]
+# dim(data.Cur)
+# dim(data.Hist)
 
 
 

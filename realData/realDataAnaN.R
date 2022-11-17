@@ -83,7 +83,7 @@ ylab = expression('|' ~ hat(delta) ~ '-' ~ delta ~ '|')
 title(ylab=ylab, line=2.2,  cex.lab=1.5)
 polygon(c(Ns[idxs], rev(Ns[idxs])), c(res$trtEff$Ls[idxs], rev(res$trtEff$Us[idxs])), border=NA, col=rgb(1, 0, 0, 0.3))
 lines(Ns[idxs], res$trtEff.no$ms[idxs], type="l", col="blue", lty=2, lwd=3)
-legend("topright", c("BHCA", "KBCD"), col=c(1, "blue"), lty=1:2, lwd=3, cex=1.5)
+legend("topright", c("CAHB", "KBCD"), col=c(1, "blue"), lty=1:2, lwd=3, cex=1.5)
 tmpF <- function(){
     tmpidxs <- 7:10
 plot(Ns[tmpidxs], res$trtEff$ms[tmpidxs], type="l", col=1, lty=1, 
@@ -112,7 +112,7 @@ jpeg("./plots/RealData_Z1rate.jpg", width=6, height=6, unit="in", res=500)
 plot(Ns[idxs], res$Z1[idxs], type="l", ylim=c(0.5, 0.6), col=1, lty=1, main="(c)",
      ylab="Allocation ratio", xlab="N", lwd=3, cex.lab=1.5, cex.main=1.5)
 lines(Ns[idxs], res$Z1.no[idxs], type="l", ylim=c(0.5, 0.6), col=c("blue"), lty=2, lwd=3)
-legend("topleft", c("BHCA", "KBCD"), col=c(1, "Blue"), lty=1:2, lwd=3, cex=1.5)
+legend("topleft", c("CAHB", "KBCD"), col=c(1, "Blue"), lty=1:2, lwd=3, cex=1.5)
 dev.off()
 
 # test
@@ -184,7 +184,7 @@ par(mfrow=c(1, 1))
 plot(Ns[idxs], powers[idxs], type='l', col=1, ylim=c(0.40, 0.98), ylab="Power", xlab="N", 
      lwd=3, main="(b)", cex.main=1.5, cex.lab=1.5)
 lines(Ns[idxs], powers.no[idxs], type='l', col="blue", lty=2, lwd=3)
-legend("bottomright", c("BHCA", "KBCD"), col=c(1, "blue"), lty=1:2, lwd=3, cex=1.5)
+legend("bottomright", c("CAHB", "KBCD"), col=c(1, "blue"), lty=1:2, lwd=3, cex=1.5)
 dev.off()
 
 

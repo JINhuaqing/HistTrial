@@ -20,7 +20,7 @@ post.b.fn2 <- function(trtsMat, dlt0=0){
 
 
 N <- 200
-is.subgrp <- F
+is.subgrp <- T
 
 # all results under no borrow, 
 load("./results/realResSimuAnaNoBorrow.RData")
@@ -93,7 +93,7 @@ if (is.subgrp){
     title(ylab=ylab, line=2.2,  cex.lab=1.5)
     polygon(c(Hs, rev(Hs)), c(errs.low, rev(errs.up)), col=rgb(1, 0, 0, 0.3), border=NA)
     abline(h=mean(noResAll$errs), col="blue", lty=2, lwd=3)
-    legend("topright", c("BHCA", "KBCD"), col=c(1, "blue"), lty=c(1, 2), lwd=3, cex=1.5)
+    legend("topright", c("CAHB", "KBCD"), col=c(1, "blue"), lty=c(1, 2), lwd=3, cex=1.5)
     dev.off()
     
     jpeg("./plots/RealDataSimu_Subgroup_rates.jpg", width=6, height=6, unit="in", res=500)
@@ -133,7 +133,7 @@ if (is.subgrp){
     title(ylab=ylab, line=2.2,  cex.lab=1.5)
     polygon(c(Hs, rev(Hs)), c(errs.low, rev(errs.up)), col=rgb(1, 0, 0, 0.3), border=NA)
     abline(h=mean(noResAll$errs), col="blue", lty=2, lwd=3)
-    legend("topright", c("BHCA", "KBCD"), col=c(1, "blue"), lty=c(1, 2), cex=1.5, lwd=3)
+    legend("topright", c("CAHB", "KBCD"), col=c(1, "blue"), lty=c(1, 2), cex=1.5, lwd=3)
     dev.off()
     
     jpeg("./plots/RealDataSimu_rates.jpg", width=6, height=6, unit="in", res=500)
@@ -197,7 +197,7 @@ jpeg("./plots/RealDataSimu_Power.jpg", width=6, height=6, unit="in", res=500)
 plot(Hs, powers, type="l", ylim=c(0.80, 0.95), xlab=expression(xi), ylab="Power", main="(b)",
      lty=1, col=1, lwd=3, cex.main=1.5, cex.lab=1.5)
 abline(h=mean(noResAll$powers), col="blue", lty=2, lwd=3)
-legend("topright", c("BHCA", "KBCD"), col=c(1, "blue"), lty=c(1, 2), lwd=3, cex=1.5)
+legend("topright", c("CAHB", "KBCD"), col=c(1, "blue"), lty=c(1, 2), lwd=3, cex=1.5)
 dev.off()
 
 if (is.subgrp){

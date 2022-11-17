@@ -79,7 +79,7 @@ ylab = expression('|' ~ hat(delta) ~ '-' ~ delta ~ '|')
 title(ylab=ylab, line=2.2,  cex.lab=1.5)
 polygon(c(N0s, rev(N0s)), c(tRes$trtLs, rev(tRes$trtUs)), border=NA, col=rgb(1, 0, 0, 0.3))
 abline(h=mean(tRes$trtms.no), col="blue", lty=2, lwd=3)
-legend("topright", c("BHCA", "KBCD"), col=c(1, "blue"), lty=1:2, lwd=3, cex=1.5)
+legend("topright", c("CAHB", "KBCD"), col=c(1, "blue"), lty=1:2, lwd=3, cex=1.5)
 dev.off()
 
 jpeg("./plots/RealDataN0_Z1rate.jpg", width=6, height=6, unit="in", res=500)
@@ -87,7 +87,7 @@ plot(N0s, tRes$Z1s, type="l", ylim=c(0.562, 0.575), col=1, lty=1, main="(c)",
      ylab="Allocation ratio", xlab=expression(N[0]), lwd=3, cex.main=1.5, cex.lab=1.5)
 #polygon(c(N0s, rev(N0s)), c(tRes$Z1sLs, rev(tRes$Z1sUs)), border=NA, col=rgb(1, 0, 0, 0.3))
 abline(h=mean(tRes$Z1s.no), col="blue", lty=2, lwd=3)
-#legend("topleft", c("BHCA", "KBCD"), col=c("Red", "Blue"), lty=1:2, lwd=2)
+#legend("topleft", c("CAHB", "KBCD"), col=c("Red", "Blue"), lty=1:2, lwd=2)
 dev.off()
 
 
@@ -157,6 +157,6 @@ par(mfrow=c(1, 1))
 plot(N0s, powers, type='l', col=1, main="(b)", 
      ylim=c(0.85, 0.95), ylab="Power", xlab=expression(N[0]), lwd=3, cex.lab=1.5, cex.main=1.5)
 abline(h=mean(powers.no), col="blue", lty=2, lwd=3)
-legend("topleft", c("BHCA", "KBCD"), col=c(1, "blue"), lty=1:2, lwd=3, cex=1.5)
+legend("topleft", c("CAHB", "KBCD"), col=c(1, "blue"), lty=1:2, lwd=3, cex=1.5)
 dev.off()
 
