@@ -44,7 +44,7 @@ gen.hist.paras <- function(n.h){
 }
 
 
-fun.real <- function(i){
+fun.simu<- function(i){
     ts <- c()
     ts <- c(ts, Sys.time())
     set.seed(seeds[i])
@@ -114,7 +114,7 @@ fun.real <- function(i){
         var.wrong.ref <- post.var.mu0.noX.fn(res.wrong.ref)
         R.wrong <- var.wrong.ref/var.wrong.info
         Rs.wrong[j] <- R.wrong
-        ass.wrong.res <- RBC.design(cx, data.wrong[, 3:(p+2), drop=F], data.wrong$Z, hs, R=R.wrong)
+        ass.wrong.res <- RBC.noX.design(data.wrong$Z, R=R.wrong)
         
         Xs <- c(Xs, cx)
         Zs.true <- c(Zs.true, ass.true.res$grp-1)
@@ -211,7 +211,7 @@ M <- 1000
 
 
 nSimu <- 2000
-post.res <- mclapply(1:nSimu, fun.real, mc.cores=35)
+post.res <- mclapply(1:nSimu, fun.simu, mc.cores=35)
 H <- diag(c(0.10, 0.10, 9.99, 9.99))
 sv.name <- paste0("./results/linearSimu_noX_overallsame_H0.RData")
 paras <- list(invgam2=invgam2, 

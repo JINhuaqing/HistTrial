@@ -286,3 +286,65 @@ r.postMu1.noX <- function(res, M){
 }
 
 
+# Reweighted Pocock-Simon design without X
+RPS.noX.design <- function(Z, R=1){
+  #args:
+  # Z: Assignment indicator, n, vec
+  #Return:
+  # probs: assign probs
+  # grp: assigned group
+  
+  # when grp=1 for n+1 subjects
+  Z1 <- c(Z, 1)
+  n11 <- sum(Z1)
+  n10 <- R*sum(1-Z1)
+  gn1 <- sum((n11-n10)**2)/2
+  
+  # when grp=0 for n+1 subjects
+  Z0 <- c(Z, 0)
+  n01 <- sum(Z0)
+  n00 <- R*sum(1-Z0)
+  gn0 <- sum((n01-n00)**2)/2
+  
+  gs.raw <- c(gn0, gn1)
+  gs <- gs.raw/sum(gs.raw)
+  
+  if(sum(gs==0) == 1){
+    probs <- c(gs[2], gs[1])
+  }else{
+    probs <- allo.probs.fn(gs)
+  }
+  
+  
+  grp <- sample.int(2, size=1, prob=probs)
+  rv <- list(grp=grp, probs=probs, gs=gs.raw)
+  rv
+}
+
+# Reweighted biased coin design
+RBC.noX.design <- function(Z, R=1){
+  #args:
+  # Z: Assignment indicator, n, vec
+  #Return:
+  # ns: num of subs in each grp
+  # probs: assign probs
+  # grp: assigned group
+  
+  
+  n0 <- R* sum((1-Z))
+  n1 <- sum(Z)
+  
+  ns <- c(n0, n1)
+  gs <- ns/sum(ns)
+  if (sum(ns)==0){
+    probs <- c(0.5, 0.5)
+  }else if(sum(gs==0) == 1){
+    probs <- c(gs[2], gs[1])
+  }else{
+    probs <- allo.probs.fn(gs)
+  }
+  grp <- sample.int(2, size=1, prob=probs)
+  rv <- list(grp=grp, probs=probs, ns=ns)
+  rv
+}
+
