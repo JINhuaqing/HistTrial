@@ -41,8 +41,8 @@ get.results <- function(post.res){
     Z1rate.sub.wrong <- do.call(rbind, lapply(post.res, function(x)subgrp.Z1.rate.fn(x$data.wrong)))
     
     # prob > 0
-    prb.true <- sapply(post.res, function(x) post.fn(x$sps.trts[, 1], 0))
-    prb.wrong <- sapply(post.res, function(x) post.fn(x$sps.trts[, 2], 0))
+    prb.true <- sapply(post.res, function(x) post.fn(x$sps.trts[, 1], 0.20))
+    prb.wrong <- sapply(post.res, function(x) post.fn(x$sps.trts[, 2], 0.40))
     prbs <- cbind(prb.true, prb.wrong)
     
     # imblance metric between 2 arms
@@ -61,15 +61,16 @@ get.results <- function(post.res){
     rv
 }
 
-H0.fil <- "./results/linearSimu_noX_1grpsame_H0.RData" 
-#H0.fil <- "./results/linearSimu_noX_overallsame_H0.RData" 
+#H0.fil <- "./results/linearSimu_noX_1grpsame_H0.RData" 
+H0.fil <- "./results/linearSimu_noX_overallsame_H0.RData" 
+# dlt0 = 0.2 for other cases, while under overallsame and no X, dlt0=0.4
 load(H0.fil)
 res.H0 <- get.results(post.res)
-c.true <- eps.alig(res.H0$prbs[, 1], 0.1);c.true
-c.wrong <- eps.alig(res.H0$prbs[, 2], 0.1);c.wrong
+c.true <- eps.alig(res.H0$prbs[, 1], 0.05);c.true
+c.wrong <- eps.alig(res.H0$prbs[, 2], 0.05);c.wrong
 
-H1.fil <- "./results/linearSimu_noX_1grpsame_b03_H1.RData" 
-#H1.fil <- "./results/linearSimu_noX_overallsame_b03_H1.RData" 
+#H1.fil <- "./results/linearSimu_noX_1grpsame_b03_H1.RData" 
+H1.fil <- "./results/linearSimu_noX_overallsame_b03_H1.RData" 
 load(H1.fil)
 res.H1 <- get.results(post.res)
 
@@ -84,9 +85,13 @@ err.wrong <- CI.fn(errs[, 2]);err.wrong
 
 # Z1rate
 Z1.true <- CI.fn(res.H1$Z1rates[, 1]);Z1.true
-Z1.wrong <- CI.fn(res.H1$Z1rates[, 2]);Z1.wrong
 colMeans(res.H1$Z1rate.sub.true)
+CI.fn(res.H1$Z1rate.sub.true[, 1])
+CI.fn(res.H1$Z1rate.sub.true[, 2])
+Z1.wrong <- CI.fn(res.H1$Z1rates[, 2]);Z1.wrong
 colMeans(res.H1$Z1rate.sub.wrong)
+CI.fn(res.H1$Z1rate.sub.wrong[, 1])
+CI.fn(res.H1$Z1rate.sub.wrong[, 2])
 
 
 # allo F stat
