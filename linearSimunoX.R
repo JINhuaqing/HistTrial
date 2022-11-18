@@ -5,7 +5,8 @@ library(magrittr)
 library(dplyr)
 library(parallel)
 #setwd("/root/Documents/HQ/HistTrial")
-setwd("/Users/hujin/Library/CloudStorage/OneDrive-UCSF/Documents/ProjectCode/HistTrial")
+#setwd("/Users/hujin/Library/CloudStorage/OneDrive-UCSF/Documents/ProjectCode/HistTrial")
+setwd("/home/huaqingj/MyResearch/HistTrial")
 source("utils.R")
 source("utils_noX.R")
 source("simplex.R")
@@ -148,7 +149,7 @@ fun.simu<- function(i){
     # with X
     res.true <- mu0.info.est.fn(Theta0s.true, data.true, H, lam, invgam2=invgam2, lam.tru=0, lastRes=lastRes.true)
     res.true.mu1 <- mu1.no.est.fn(data.true, H)
-    testPt <- as.matrix(Xs)
+    testPt <- matrix(0:1, nrow=2)
     trt.eff.true <- mean(mu1.efn(testPt, res.true.mu1)) -  mean(mu0.efn(testPt, res.true))
     msps0.true <- r.postMu0(testPt, res.true, M)$trts
     msps1.true <- r.postMu1(testPt, res.true.mu1, M)$trts
@@ -183,11 +184,11 @@ fun.simu<- function(i){
 
 # True model parameters
 #under H0
-b<-1 # the treatment effect
+b<-0.3 # the treatment effect
 
 betas <- c(1, 1) # parameters for current model
-alps <- c(6, -9) # parameters for historical model
-#alps <- c(1, 10) # parameters for historical model
+#alps <- c(6, -9) # parameters for historical model
+alps <- c(1, 10) # parameters for historical model
 phi0 = phi1 = 0.5 # sd of the noise for the current trial in two grps
 phi0.h = 0.5 # sd of the noise for the historical model
 
@@ -195,7 +196,7 @@ phi0.h = 0.5 # sd of the noise for the historical model
 # Simu parameters
 n.h <- 100
 invgam2 <- 0.33
-N <- 200 # total sample size
+N <- 100 # total sample size
 # parameters
 lam.tru <- 0.0 # two subgrps can not use lam.q, so I give lam.tru directly.
 lam <- 300
@@ -211,9 +212,11 @@ M <- 1000
 
 
 nSimu <- 2000
-post.res <- mclapply(1:nSimu, fun.simu, mc.cores=35)
-H <- diag(c(0.10, 0.10, 9.99, 9.99))
-sv.name <- paste0("./results/linearSimu_noX_overallsame_H0.RData")
+post.res <- mclapply(1:nSimu, fun.simu, mc.cores=20)
+#sv.name <- paste0("./results/linearSimu_noX_1grpsame_H0.RData")
+sv.name <- paste0("./results/linearSimu_noX_1grpsame_b03_H1.RData")
+#sv.name <- paste0("./results/linearSimu_noX_overallsame_b03_H1.RData")
+#sv.name <- paste0("./results/linearSimu_noX_overallsame_H0.RData")
 paras <- list(invgam2=invgam2, 
               b=b, phi0=phi0, phi1=phi1, N=N, lam.tru=lam.tru, 
               hs=hs,  H=H, M=M, lam=lam)
