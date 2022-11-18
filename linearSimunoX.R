@@ -187,8 +187,8 @@ fun.simu<- function(i){
 b<-0.3 # the treatment effect
 
 betas <- c(1, 1) # parameters for current model
-#alps <- c(6, -9) # parameters for historical model
-alps <- c(1, 10) # parameters for historical model
+alps <- c(6, -9) # parameters for historical model
+#alps <- c(1, 10) # parameters for historical model
 phi0 = phi1 = 0.5 # sd of the noise for the current trial in two grps
 phi0.h = 0.5 # sd of the noise for the historical model
 
@@ -214,8 +214,8 @@ M <- 1000
 nSimu <- 2000
 post.res <- mclapply(1:nSimu, fun.simu, mc.cores=20)
 #sv.name <- paste0("./results/linearSimu_noX_1grpsame_H0.RData")
-sv.name <- paste0("./results/linearSimu_noX_1grpsame_b03_H1.RData")
-#sv.name <- paste0("./results/linearSimu_noX_overallsame_b03_H1.RData")
+#sv.name <- paste0("./results/linearSimu_noX_1grpsame_b03_H1.RData")
+sv.name <- paste0("./results/linearSimu_noX_overallsame_b03_H1.RData")
 #sv.name <- paste0("./results/linearSimu_noX_overallsame_H0.RData")
 paras <- list(invgam2=invgam2, 
               b=b, phi0=phi0, phi1=phi1, N=N, lam.tru=lam.tru, 

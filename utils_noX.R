@@ -77,7 +77,7 @@ optTau.noX <- function(data, Mu0, lam, Theta0, invgam2=0, lam.tru=0){
   tau2.td <- num/den
   
   tau2 <- trunFn(tau2.td, lam.tru)
-  tau2 <- euclidean_proj_l1ball(rep(1, length(sZs))*tau2, lam)
+  tau2 <- euclidean_proj_l1ball(rep(1, length(sZs))*tau2, lam*log(length(sZs)))
   return(list(tau2=tau2[1], tau2.td=tau2.td))
 }
 
