@@ -11,7 +11,7 @@ library(dplyr)
 library(parallel)
 #setwd("/root/Documents/HQ/HistTrial")
 #setwd("/Users/hujin/Library/CloudStorage/OneDrive-UCSF/Documents/ProjectCode/HistTrial")
-setwd("/home/huaqingj/MyResearch/HistTrial")
+setwd("/HistTrial")
 source("utils.R")
 source("utils_noX.R")
 source("simplex.R")
@@ -53,7 +53,7 @@ gen.hist.paras <- function(n.h){
 fun.simu<- function(i){
     ts <- c()
     ts <- c(ts, Sys.time())
-    set.seed(seeds[i])
+    #set.seed(seeds[i])
     alpss.both <- gen.hist.paras(n.h) # the historical model
     print(i)
     
@@ -189,7 +189,7 @@ fun.simu<- function(i){
 
 # True model parameters
 #under H0
-b<-0.3 # the treatment effect
+b<-0 # the treatment effect
 
 betas <- c(1, 0) # parameters for current model
 alps <- c(1, 10) # parameters for historical model
@@ -217,8 +217,8 @@ M <- 1000
 
 nSimu <- 2000
 post.res <- mclapply(1:nSimu, fun.simu, mc.cores=20)
-#sv.name <- paste0("./results/linearSimu_noX_1grpsame_H0.RData")
-sv.name <- paste0("./results/linearSimu_noX_1grpsame_nobeta1_b03_H1.RData")
+sv.name <- paste0("./results/linearSimu_noX_1grpsame_nobeta1_H0.RData")
+#sv.name <- paste0("./results/linearSimu_noX_1grpsame_nobeta1_b03_H1.RData")
 paras <- list(invgam2=invgam2, 
               b=b, phi0=phi0, phi1=phi1, N=N, lam.tru=lam.tru, 
               hs=hs,  H=H, M=M, lam=lam)
