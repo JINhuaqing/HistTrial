@@ -2,7 +2,7 @@ rm(list=ls())
 #setwd("/home/huaqingj/MyResearch/HistTrial/")
 #setwd("/root/Documents/HQ/HistTrial")
 setwd("C:/Users/JINHU/OneDrive - connect.hku.hk/文档/ProjectCode/HistTrial")
-setwd("C:/Users/JINHU/OneDrive - connect.hku.hk/�ĵ�/ProjectCode/HistTrial")
+setwd("C:/Users/JINHU/OneDrive - connect.hku.hk/?ĵ?/ProjectCode/HistTrial")
 
 load("./realData/dat.merge.Rdata")
 
@@ -106,6 +106,8 @@ data.Cur <- data.Cur[kpIdx.Cur, ]
 data.Hist <- data.Hist[kpIdx.Hist, ]
 summary(data.Cur)
 summary(data.Hist)
+# raio of hist/cur in control arm, (on Jul 7, 2023)
+sum(data.Hist$Z==0)/sum(data.Cur$Z==0)
 
 mean.menyrs<- mean(data.Cur$menyrs, na.rm=T)
 sd.menyrs<- sd(data.Cur$menyrs, na.rm=T)
